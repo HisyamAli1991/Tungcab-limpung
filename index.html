@@ -117,6 +117,20 @@
     color:#fff;
   }
 
+  .ao-filter-row{
+    padding:2px 16px 8px;
+  }
+  #aoFilter{
+    width:100%;
+    padding:9px 12px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--paper-raised);
+    color:var(--ink);
+    font-size:0.82rem;
+    font-family:inherit;
+  }
+
   main{padding:8px 16px 90px;}
   .count-row{
     font-size:0.78rem;
@@ -310,6 +324,10 @@
 
 <div class="filters" id="filters"></div>
 
+<div class="ao-filter-row">
+  <select id="aoFilter"><option value="Semua">Semua AO</option></select>
+</div>
+
 <main>
   <div class="count-row" id="countRow"></div>
   <div id="list"></div>
@@ -365,6 +383,25 @@ filtersEl.addEventListener('click', e => {
   render();
 });
 
+let activeAO = 'Semua';
+const aoFilterEl = document.getElementById('aoFilter');
+
+function rebuildAOFilter(){
+  const aos = [...new Set(DATA.map(d => (d.ao || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b, 'id'));
+  if(activeAO !== 'Semua' && !aos.includes(activeAO)) activeAO = 'Semua';
+  aoFilterEl.innerHTML = `<option value="Semua">Semua AO (${DATA.length})</option>` +
+    aos.map(a => {
+      const cnt = DATA.filter(d => (d.ao || '').trim() === a).length;
+      return `<option value="${a}" ${a === activeAO ? 'selected' : ''}>${a} (${cnt})</option>`;
+    }).join('');
+}
+rebuildAOFilter();
+
+aoFilterEl.addEventListener('change', () => {
+  activeAO = aoFilterEl.value;
+  render();
+});
+
 function updateStats(){
   document.getElementById('statTotal').textContent = DATA.length;
   document.getElementById('statPaid').textContent = DATA.filter(d => d.sudah_angsur).length;
@@ -403,11 +440,13 @@ function render(){
   const q = searchEl.value.trim();
   let rows = DATA.filter(d => matches(d, q));
   if(activeProduk !== 'Semua') rows = rows.filter(d => d.produk === activeProduk);
+  if(activeAO !== 'Semua') rows = rows.filter(d => (d.ao || '').trim() === activeAO);
   if(activeStatus === 'paid') rows = rows.filter(d => d.sudah_angsur);
   if(activeStatus === 'unpaid') rows = rows.filter(d => !d.sudah_angsur);
 
   const statusLabel = activeStatus === 'paid' ? ' · sudah angsur' : activeStatus === 'unpaid' ? ' · belum angsur' : '';
-  countRow.textContent = `Menampilkan ${rows.length} dari ${DATA.length} nasabah${statusLabel}`;
+  const aoLabel = activeAO !== 'Semua' ? ` · AO: ${activeAO}` : '';
+  countRow.textContent = `Menampilkan ${rows.length} dari ${DATA.length} nasabah${statusLabel}${aoLabel}`;
 
   if(rows.length === 0){
     listEl.innerHTML = `<div class="empty">Tidak ada nasabah yang cocok dengan pencarian.</div>`;
@@ -618,6 +657,7 @@ csvFileInput.addEventListener('change', () => {
       }
       updateStats();
       rebuildFilters();
+      rebuildAOFilter();
       render();
       uploadStatusEl.textContent = `✓ ${records.length} rekening dimuat dari "${file.name}"`;
       uploadStatusEl.className = 'upload-status ok';
@@ -643,6 +683,7 @@ resetBtn.addEventListener('click', () => {
   }catch(e){}
   updateStats();
   rebuildFilters();
+  rebuildAOFilter();
   render();
   uploadStatusEl.textContent = 'Data direset ke bawaan.';
   uploadStatusEl.className = 'upload-status ok';
