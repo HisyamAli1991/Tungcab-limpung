@@ -10,7 +10,10 @@
   .header{background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);color:#fff;padding:16px 16px 0}
   .header .sub{font-size:11px;opacity:.7;letter-spacing:1px;text-transform:uppercase}
   .header h1{font-size:20px;font-weight:800;margin-top:2px}
-  .header .desc{font-size:12px;opacity:.8}
+  .header .desc{font-size:12px;opacity:.8;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+  .header .desc-left{display:flex;align-items:center}
+  .update-btn{background:#ffffff22;border:1px solid #ffffff55;color:#fff;border-radius:14px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer}
+  .update-btn:active{background:#ffffff3a}
   .tabs{display:flex;gap:0;margin-top:14px}
   .tab{background:transparent;color:#fff;border:none;border-radius:8px 8px 0 0;padding:8px 22px;font-weight:600;font-size:14px;cursor:pointer;transition:all .2s}
   .tab.active{background:#fff;color:#2563eb}
@@ -48,7 +51,7 @@
   .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
   .stat-card{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px #0001}
   .progress-bar{height:8px;border-radius:4px;margin-top:4px;border:1px solid #e2e8f0;min-width:4px}
-  .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e3a5f;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;z-index:200;pointer-events:none}
+  .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e3a5f;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;z-index:200;pointer-events:none;max-width:90%;text-align:center}
   .toast.show{opacity:1}
   .loading{text-align:center;padding:40px;color:#94a3b8;font-size:14px}
   .online-dot{width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;margin-right:6px;animation:pulse 2s infinite}
@@ -57,6 +60,7 @@
   .produk-badge{border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;display:inline-block}
   .produk-mura{background:#dbeafe;color:#0c4a6e}
   .produk-mush{background:#d1fae5;color:#065f46}
+  .update-info{font-size:11px;color:#94a3b8;margin-bottom:10px;text-align:center}
 </style>
 </head>
 <body>
@@ -64,7 +68,11 @@
 <div class="header">
   <div class="sub">Kopena Limpung · 052</div>
   <h1>Tunggakan Pembiayaan</h1>
-  <div class="desc"><span class="online-dot"></span><span id="sync-status">Menghubungkan...</span></div>
+  <div class="desc">
+    <span class="desc-left"><span class="online-dot"></span><span id="sync-status">Menghubungkan...</span></span>
+    <button class="update-btn" onclick="document.getElementById('csv-input').click()">📤 Update Data</button>
+    <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="handleCSVUpload(event)"/>
+  </div>
   <div class="tabs">
     <button class="tab active" onclick="switchTab('daftar')">📋 Daftar</button>
     <button class="tab" onclick="switchTab('rekap')">📊 Rekap</button>
@@ -74,6 +82,7 @@
 <div class="content">
   <!-- TAB DAFTAR -->
   <div id="tab-daftar">
+    <div class="update-info" id="update-info"></div>
     <div class="card" style="margin-bottom:12px">
       <input class="search-box" id="search" placeholder="🔍  Cari nama, rekening, atau alamat..."/>
       <div class="filter-row" id="filter-produk-row"></div>
@@ -88,7 +97,7 @@
     <div class="stat-grid">
       <div class="stat-card">
         <div style="font-size:11px;color:#64748b;margin-bottom:4px">TOTAL DEBITUR</div>
-        <div style="font-size:28px;font-weight:800;color:#1e3a5f" id="r-total">145</div>
+        <div style="font-size:28px;font-weight:800;color:#1e3a5f" id="r-total">-</div>
         <div style="font-size:11px;color:#64748b">anggota</div>
       </div>
       <div class="stat-card">
@@ -140,7 +149,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { getDatabase, ref, onValue, update, set, get } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAvmLzwZECEnsJj2htuU8D7UzJSuxfQoQQ",
@@ -156,218 +165,140 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const DATA = [
-  {no:1,noRekening:"541052003094",nama:"ABDUL AYIS SUTRISNO",tgl:27,denda:566667,alamat:"DK. DURENSARI RT 04/03 DS. DURENOMBO",pendebetan:"211052004008",produk:"Murabahah"},
-  {no:2,noRekening:"541052002731",nama:"AHMAD RIZKI",tgl:27,denda:8055560,alamat:"DK. REJOSARI RT 08/04 DS.SENDANG",pendebetan:"211052002745",produk:"Murabahah"},
-  {no:3,noRekening:"541052003087",nama:"AHMAD SOBIRIN",tgl:8,denda:393333,alamat:"DK PANDEK RT 03/06 DS KARANGTENGAH",pendebetan:"211052001647",produk:"Murabahah"},
-  {no:4,noRekening:"541052002991",nama:"AHMAD TOKHIR",tgl:20,denda:1429167,alamat:"DK. LIMBANGAN RT. 01/02 REJOSARI BARAT",pendebetan:"211052001909",produk:"Murabahah"},
-  {no:5,noRekening:"541052002703",nama:"AKH. FAOZAN",tgl:19,denda:18527788,alamat:"DK.SOKOSAWIT RT.01/07 DS.AMONGROGO -",pendebetan:"211052003557",produk:"Murabahah"},
-  {no:6,noRekening:"541052002896",nama:"ALI MASYKUR",tgl:4,denda:541667,alamat:"DK.DLISEN RT.02/01 DS.DLISEN - LIMPUNG",pendebetan:"211052003838",produk:"Murabahah"},
-  {no:7,noRekening:"541052002963",nama:"ANDRY HENDRATNO",tgl:17,denda:1409722,alamat:"DK. KRANGKOAN RT 04/02 DS NGALIYAN",pendebetan:"211052001731",produk:"Murabahah"},
-  {no:8,noRekening:"541052002847",nama:"ANI MURDIYANI",tgl:2,denda:1083334,alamat:"DK.GEDONGAN RT.03/01",pendebetan:"211052004016",produk:"Murabahah"},
-  {no:9,noRekening:"541052000544",nama:"ΑΝΤΟΝΟ",tgl:21,denda:8633332,alamat:"DS BANDAR RT 02/05 BANDAR BATANG",pendebetan:"211052000919",produk:"Murabahah"},
-  {no:10,noRekening:"541052002979",nama:"APRILIYANTI",tgl:17,denda:4062501,alamat:"DK.SEMPU RT.01/03",pendebetan:"211052003848",produk:"Murabahah"},
-  {no:11,noRekening:"541052003008",nama:"ARI ROSIANA",tgl:18,denda:297917,alamat:"DK. KAUMAN RT 03/03 DS. TERSONO KЕС.",pendebetan:"211052004258",produk:"Murabahah"},
-  {no:13,noRekening:"541052002753",nama:"ARIF SODIKIN",tgl:28,denda:35444442,alamat:"GEDONGAN RT 02/01.REJOSARI BARAT",pendebetan:"211052000791",produk:"Murabahah"},
-  {no:14,noRekening:"541052003050",nama:"ARIF USMANTO",tgl:22,denda:2013889,alamat:"DK. RECO RT 17/03 DS. GUNUNGSARI KEC.",pendebetan:"211052004301",produk:"Murabahah"},
-  {no:15,noRekening:"541052003057",nama:"ASLAKHUL ARIFIN",tgl:8,denda:9391669,alamat:"DK.GUNUNG TUMPENG RT.03/02 DS.DLISEN",pendebetan:"211052003985",produk:"Murabahah"},
-  {no:16,noRekening:"541052002706",nama:"ASMAWI",tgl:24,denda:4833333,alamat:"DK. GEDONG RT. 09/03 DS. TIMBANG KEC.",pendebetan:"211052003007",produk:"Murabahah"},
-  {no:17,noRekening:"541052002826",nama:"BARIYAH",tgl:2,denda:8125000,alamat:"DK. DURENSARI RT. 04/03 DS. DURENΟΜΒΟ",pendebetan:"211052002588",produk:"Murabahah"},
-  {no:18,noRekening:"541052002921",nama:"BASARI",tgl:23,denda:1083334,alamat:"DK. GUMELEM RT 11/03 DS. GUMAWANG",pendebetan:"211052004085",produk:"Murabahah"},
-  {no:19,noRekening:"541052003098",nama:"DASMOΝΟ",tgl:2,denda:396667,alamat:"DK. DURENSARI RT 04/03 DS. DUREN OMBO",pendebetan:"211052004009",produk:"Murabahah"},
-  {no:20,noRekening:"541052002898",nama:"DIAH HUSNA ARIFAH",tgl:10,denda:17875002,alamat:"DK.WATES RT01/06 DS.KRANGGAN -",pendebetan:"211052003626",produk:"Murabahah"},
-  {no:22,noRekening:"541052002733",nama:"EKO HARYANTO",tgl:4,denda:8055555,alamat:"DK.SENDANG RT.02/01 DS.SENDANG -",pendebetan:"211052003871",produk:"Murabahah"},
-  {no:23,noRekening:"541052001721",nama:"EKO SANTOSO",tgl:17,denda:1614977777,alamat:"DK. KAUMAN RT. 01/03 DS. TERSONO KEC.",pendebetan:"211052002806",produk:"Murabahah"},
-  {no:24,noRekening:"541052002240",nama:"EKO SANTOSO",tgl:15,denda:663000000,alamat:"DK. KAUMAN RT. 01/03 DS. TERSONO KEC.",pendebetan:"211052002618",produk:"Murabahah"},
-  {no:25,noRekening:"541052002871",nama:"EMA LUTFIA",tgl:17,denda:4333332,alamat:"DK. GEDONGAN RT. 06/01 DS. DS. REJOSARI",pendebetan:"211052002766",produk:"Murabahah"},
-  {no:26,noRekening:"541052001384",nama:"ERIK YUVENALIS",tgl:18,denda:286400000,alamat:"DK. GEPOR RT 04/03 DS. LIMPUNG LIMPUNG",pendebetan:"211052001870",produk:"Murabahah"},
-  {no:28,noRekening:"541052003093",nama:"FAHRUDIN",tgl:26,denda:491667,alamat:"DK. SENDANG RT. 01/01 DS. SENDANG KEC.",pendebetan:"211052004325",produk:"Murabahah"},
-  {no:29,noRekening:"541052003004",nama:"FATONAH",tgl:13,denda:1088888,alamat:"DK. LOBANG RT 03/01 DS. LOBANG KEC.",pendebetan:"211052004256",produk:"Murabahah"},
-  {no:30,noRekening:"541052002980",nama:"FINA SAFITRI",tgl:25,denda:1020834,alamat:"DK. KAUM RT. 04/01 DS. KEBUMEN KEC.",pendebetan:"211052004225",produk:"Murabahah"},
-  {no:31,noRekening:"541052002976",nama:"GALVIN ADI SAPUTRA",tgl:27,denda:5687499,alamat:"DK. GEDONGAN RT. 01/01 DS. REJOSARI",pendebetan:"211052003285",produk:"Murabahah"},
-  {no:32,noRekening:"541052002701",nama:"GATRA IMAM",tgl:17,denda:8055556,alamat:". GEDONGAN RT 01/01 DS. REJOSARI",pendebetan:"211052000856",produk:"Murabahah"},
-  {no:33,noRekening:"541052000929",nama:"H DULJALIL",tgl:7,denda:10320000,alamat:"Condong TambahrejoRT/RW. 03/02 Tambahrejo",pendebetan:"211052000154",produk:"Murabahah"},
-  {no:34,noRekening:"541052003055",nama:"HADI SUSILO",tgl:25,denda:675000,alamat:"GEDONGAN RT 02/01.REJOSARI BARAT",pendebetan:"211052000592",produk:"Murabahah"},
-  {no:35,noRekening:"541052003104",nama:"HARMANTO",tgl:13,denda:5750000,alamat:"DK. KAYEN RT 02/01 DS. KALIBALIK",pendebetan:"211052002139",produk:"Murabahah"},
-  {no:37,noRekening:"541052003106",nama:"HENI APRILIA",tgl:23,denda:1416667,alamat:"DK. LIMBANGNA RT 05/02 DS. REJOSARI",pendebetan:"211052003478",produk:"Murabahah"},
-  {no:38,noRekening:"541052000239",nama:"IRWANTO",tgl:10,denda:10853334,alamat:"DK. PUCANGGADING UTARA RT 03/03",pendebetan:"211052000486",produk:"Murabahah"},
-  {no:39,noRekening:"541052000210",nama:"ISLAHUL KHIKAM",tgl:20,denda:5166666,alamat:"PUCANGGADING TIMUR RT01/01 BANDAR",pendebetan:"211052000439",produk:"Murabahah"},
-  {no:40,noRekening:"541052002936",nama:"ISTIKHOMAH",tgl:13,denda:6499998,alamat:"DK. PEKUNCEN RT. 03/02 DS. REJOSARI",pendebetan:"211052004104",produk:"Murabahah"},
-  {no:41,noRekening:"541052002776",nama:"ISTIKOWATI",tgl:24,denda:2013889,alamat:"BABADAN RT 02/03 BABADAN, LIMPUNG",pendebetan:"211052000745",produk:"Murabahah"},
-  {no:42,noRekening:"541052002897",nama:"JIHAN MAULANA YUSUF",tgl:4,denda:3033336,alamat:"DK.KAUMAN RT.03/03 DS.TERSONO -",pendebetan:"211052003801",produk:"Murabahah"},
-  {no:43,noRekening:"541052002455",nama:"JUMAHAR",tgl:16,denda:283441681,alamat:"CANDI GUGUR RT 04/01 DS. CANDI GUGUR",pendebetan:"211052001493",produk:"Murabahah"},
-  {no:44,noRekening:"541052002245",nama:"JUMIATI",tgl:22,denda:575000000,alamat:"DK. PAKIS RT. 03/01 DS. HARJOWINANGUN",pendebetan:"211052002881",produk:"Murabahah"},
-  {no:45,noRekening:"541052000235",nama:"SURIP SUTRESNO",tgl:4,denda:7400000,alamat:"PUCANGGADINGRT/RW. 04/02 BANDAR",pendebetan:"211052100005",produk:"Murabahah"},
-  {no:46,noRekening:"541052000889",nama:"KADARI",tgl:28,denda:4092000,alamat:"SIGUCI PECALUNGAN RT 03/01",pendebetan:"211052000387",produk:"Murabahah"},
-  {no:47,noRekening:"541052002797",nama:"KARNO",tgl:25,denda:9100004,alamat:"DK. SIDOKERSO RT 01/05 DS.",pendebetan:"211052001413",produk:"Murabahah"},
-  {no:48,noRekening:"541052000201",nama:"KHOIRUDIN",tgl:4,denda:10333334,alamat:"PUCANGGADINGRT/RW. 007/004 BANDAR",pendebetan:"211052100031",produk:"Murabahah"},
-  {no:49,noRekening:"541052002585",nama:"KOMARIYAH",tgl:18,denda:2293332,alamat:"KOMP. AL AZHAR NO.1 RT. 02/01 DS.",pendebetan:"211052003146",produk:"Murabahah"},
-  {no:50,noRekening:"541052002915",nama:"KUSRINTO",tgl:8,denda:1787499,alamat:"MILUWUNG RT 01/03 REJOSARI",pendebetan:"211052000389",produk:"Murabahah"},
-  {no:51,noRekening:"541052002894",nama:"SARMIDI",tgl:3,denda:379167,alamat:"DK.BANTENG RT.04/02 DS. BANTENG -",pendebetan:"211052004058",produk:"Murabahah"},
-  {no:52,noRekening:"541052000621",nama:"SAYOMAH",tgl:15,denda:6613332,alamat:"DK, PROTO RT 03/05 TAMBAHREJO BANDAR",pendebetan:"211052000858",produk:"Murabahah"},
-  {no:53,noRekening:"541052002779",nama:"KUSTIYAH",tgl:30,denda:32423606,alamat:"DK.KALISALAK RT.02/01 DS.KALISALAK -",pendebetan:"211052003619",produk:"Murabahah"},
-  {no:54,noRekening:"541052002707",nama:"LAILATUN NAFI'AH",tgl:24,denda:56388880,alamat:"DK KEDAWUNG RT. 02/01 DS. KEDAWUNG",pendebetan:"211052002536",produk:"Murabahah"},
-  {no:55,noRekening:"541052001549",nama:"LUSIANA",tgl:7,denda:6800000,alamat:"DK. PAGOTAN RT. 01/03 DS. KALISALAK KEC.",pendebetan:"211052002610",produk:"Murabahah"},
-  {no:56,noRekening:"541052000455",nama:"MAHFUDIN",tgl:23,denda:10360001,alamat:"PUCANGGADING RT03/05 BANDAR",pendebetan:"211052000173",produk:"Murabahah"},
-  {no:57,noRekening:"541052001345",nama:"MAHYUN",tgl:10,denda:49622223,alamat:"DK KEBANGGAN RT 06/03 SENDANG",pendebetan:"211052001425",produk:"Murabahah"},
-  {no:58,noRekening:"541052002587",nama:"MARUTI",tgl:26,denda:17111110,alamat:"DK. KEBON PETUNG RT 06/02 DS. REJOSARI",pendebetan:"211052003573",produk:"Murabahah"},
-  {no:59,noRekening:"541052000927",nama:"MARWAN",tgl:7,denda:112375000,alamat:"DK.TEMPURAN RT 04/02DS.",pendebetan:"211052001505",produk:"Murabahah"},
-  {no:60,noRekening:"541052002961",nama:"MEI DWI.ARIS SETIA",tgl:14,denda:816666,alamat:"DK. JETIS RT. 01/02 DS. LOBANG KEC.",pendebetan:"211052004143",produk:"Murabahah"},
-  {no:61,noRekening:"541052002716",nama:"MEY KURNIAWATI",tgl:2,denda:26000000,alamat:"DK SIDOMULYO RT 01/01 DS. SIDOMULYO",pendebetan:"211052001817",produk:"Murabahah"},
-  {no:62,noRekening:"541052002680",nama:"MUJIATI",tgl:8,denda:17722232,alamat:"DK. MRAJI RT 02/04 DS. WONOKERSO KEC.",pendebetan:"211052003833",produk:"Murabahah"},
-  {no:63,noRekening:"541052003064",nama:"MISRO",tgl:24,denda:1354167,alamat:"DK KESANEN RT. 07/03 DS. GONDO KEC.",pendebetan:"211052004306",produk:"Murabahah"},
-  {no:64,noRekening:"541052003074",nama:"MISTIATI",tgl:3,denda:958334,alamat:"DK.DURENSARI RT.02/03 DS.DURENOMBO -",pendebetan:"211052003718",produk:"Murabahah"},
-  {no:65,noRekening:"541052002477",nama:"MOHAMMAD FENGKI",tgl:13,denda:15087500,alamat:"DK GEDONGANRT.04/01 DS.REJOSARI",pendebetan:"211052003663",produk:"Murabahah"},
-  {no:66,noRekening:"541052002486",nama:"SUMARNI",tgl:28,denda:217500000,alamat:"DK. KARANGJATI RT. 02/03 DS. KEBUMEN",pendebetan:"211052002200",produk:"Murabahah"},
-  {no:67,noRekening:"541052002751",nama:"MUHAMMAD NAJIB",tgl:28,denda:17722221,alamat:"DK.BANTENG RT.01/01 DS.BANTENG -",pendebetan:"211052003881",produk:"Murabahah"},
-  {no:68,noRekening:"541052003086",nama:"MUHAMMAD YASIR",tgl:8,denda:393333,alamat:"DK. KALIBENING RT. 02/02 DS. KALISALAK",pendebetan:"211052003254",produk:"Murabahah"},
-  {no:69,noRekening:"541052002754",nama:"MUKHAYATI",tgl:3,denda:16111112,alamat:"DK.BUBAKAN HAJI RT.01/01",pendebetan:"211052003885",produk:"Murabahah"},
-  {no:70,noRekening:"541052002983",nama:"MUKHSININ",tgl:29,denda:270833,alamat:"DK. REJOSARI RT. 07/04 DS. SENDANG KEC.",pendebetan:"211052004231",produk:"Murabahah"},
-  {no:71,noRekening:"541052003000",nama:"MUKMIN",tgl:11,denda:541667,alamat:"DK.SENDANG RT.04/02 DS.SENDANG -",pendebetan:"211052003812",produk:"Murabahah"},
-  {no:74,noRekening:"541052002988",nama:"NIRAWATI",tgl:19,denda:1361112,alamat:"DK.CENDONO LOR RT. 02/01 DS.TEMBOK",pendebetan:"211052001346",produk:"Murabahah"},
-  {no:75,noRekening:"541052002434",nama:"NUR HIDAYAH",tgl:6,denda:15847232,alamat:"DK.DERMAN RT.019/05 DS. GUMAWANG -",pendebetan:"211052003640",produk:"Murabahah"},
-  {no:76,noRekening:"541052002024",nama:"NUR HIDAYATI",tgl:2,denda:187291665,alamat:"DK KEBANGGAN RT 05/03 DS. SENDANG",pendebetan:"211052001754",produk:"Murabahah"},
-  {no:77,noRekening:"541052001562",nama:"NUR KHOYIN",tgl:30,denda:6422222,alamat:". WATES RT. 01/02 WONOKERSO",pendebetan:"211052002106",produk:"Murabahah"},
-  {no:79,noRekening:"541052002868",nama:"NUR ROFIK",tgl:11,denda:10562500,alamat:"DK.SUKOREJO RT.04/02 DS. SUKOREJO -",pendebetan:"211052004035",produk:"Murabahah"},
-  {no:80,noRekening:"541052003092",nama:"NUR KHAYATI",tgl:21,denda:246944,alamat:"DK MILUWUNG RT.05/03 DS.REJOSARI",pendebetan:"211052003621",produk:"Murabahah"},
-  {no:81,noRekening:"541052002773",nama:"NURKHOYIN",tgl:17,denda:22958327,alamat:"DK.WONOSOBO RT.02/03 DS. WONOSOBO -",pendebetan:"211052003971",produk:"Murabahah"},
-  {no:82,noRekening:"541052002994",nama:"OKI SEPTIANI",tgl:23,denda:541667,alamat:"KALISARI RT 03/01 KALISARI BLADO",pendebetan:"211052000823",produk:"Murabahah"},
-  {no:83,noRekening:"541052002243",nama:"PARIKHIN",tgl:20,denda:84583336,alamat:"DK. SURJO RT. 08/03 DS. SURJO KEC.",pendebetan:"211052003492",produk:"Murabahah"},
-  {no:84,noRekening:"541052002002",nama:"PATAH",tgl:22,denda:15620000,alamat:"LimbanganRT/RW. 004/0 Rejosari Barat",pendebetan:"211052000058",produk:"Murabahah"},
-  {no:85,noRekening:"541052003083",nama:"PAWITRI",tgl:29,denda:4550001,alamat:"DK. SENDANG RT. 01/01 DS. SENDANG",pendebetan:"211052002314",produk:"Murabahah"},
-  {no:86,noRekening:"541052001689",nama:"RAHMAD EFENDI",tgl:11,denda:6200000,alamat:"DK.KEBONPETUNG RT.06/02 DS.REJOSARI",pendebetan:"211052002777",produk:"Murabahah"},
-  {no:87,noRekening:"541052002972",nama:"REPIN",tgl:20,denda:2683335,alamat:"DK. BEJI RT. 06/02 DS. BEJI KEC. TULIS KAB.",pendebetan:"211052003681",produk:"Murabahah"},
-  {no:88,noRekening:"541052002926",nama:"REZA SAPUTRA ADI",tgl:30,denda:1733332,alamat:"DK.SEMPU RT 02/01 DS.SEMPU",pendebetan:"211052004089",produk:"Murabahah"},
-  {no:89,noRekening:"541052002825",nama:"RIAN ADE PRATAMA",tgl:1,denda:13000000,alamat:"LIMPUNG RT 03/02 LIMPUNG",pendebetan:"211052003665",produk:"Murabahah"},
-  {no:91,noRekening:"541052002890",nama:"RIYA PURNAMASARI",tgl:22,denda:1666667,alamat:"JL.BINTORO VII RT.05/08",pendebetan:"211052003656",produk:"Murabahah"},
-  {no:92,noRekening:"541052002494",nama:"RIYADEN",tgl:16,denda:6044444,alamat:"DK.KEDUNG DOWO RT.01/03 DS.PRETEK -",pendebetan:"211052003671",produk:"Murabahah"},
-  {no:93,noRekening:"541052003073",nama:"ROHMAT",tgl:27,denda:758333,alamat:"DK. SENDANG RT. 04/01 DS. SENDANG KEC.",pendebetan:"211052002754",produk:"Murabahah"},
-  {no:94,noRekening:"541052003097",nama:"ROKHIM SLAMET",tgl:2,denda:6708334,alamat:"DK. BANTENG RT. 03/01 DS. BANTENG",pendebetan:"211052002503",produk:"Murabahah"},
-  {no:96,noRekening:"541052002971",nama:"RONDI",tgl:20,denda:10062500,alamat:"DK.SENDANG RT.02/01 DS.SENDANG -",pendebetan:"211052003720",produk:"Murabahah"},
-  {no:97,noRekening:"541052003040",nama:"ROSIDIN",tgl:28,denda:191667,alamat:"DK. SENDANG RT 04/01 DS. SENDANG KEC.",pendebetan:"211052004297",produk:"Murabahah"},
-  {no:98,noRekening:"541052001691",nama:"RUSIDAH",tgl:12,denda:49622223,alamat:"DK. REJOSARI RT 07/04 DS. SENDANG",pendebetan:"211052001725",produk:"Murabahah"},
-  {no:99,noRekening:"541052002796",nama:"SAIT",tgl:24,denda:2416668,alamat:"DK. BAKAN RT 09/01 DS. HARJOWINANGUN",pendebetan:"211052002275",produk:"Murabahah"},
-  {no:101,noRekening:"541052001990",nama:"SETIARSO Α.ΜΑ",tgl:4,denda:270666668,alamat:"REJOSARI BARAT RT 01 RW 01.TERSONO",pendebetan:"211052000562",produk:"Murabahah"},
-  {no:102,noRekening:"541052003033",nama:"SITI PURWANTI",tgl:16,denda:866667,alamat:"DK. GEDONGAN RT. 04/01 DS. REJOSARI",pendebetan:"211052002545",produk:"Murabahah"},
-  {no:103,noRekening:"541052001586",nama:"SITI RIWAYATI HJ",tgl:4,denda:1099583336,alamat:"DK. KARANGANYAR RT. 07/04 DS. SUMUR",pendebetan:"211052002350",produk:"Murabahah"},
-  {no:104,noRekening:"541052002886",nama:"SITI RODHIYAH",tgl:19,denda:14499999,alamat:"DK.NGALIYAN RT.03/01 DS.NGALIYAN -",pendebetan:"211052003837",produk:"Murabahah"},
-  {no:105,noRekening:"541052002531",nama:"SITI ROMLAH",tgl:15,denda:38263887,alamat:"TERSONO BATANG",pendebetan:"211052001016",produk:"Murabahah"},
-  {no:107,noRekening:"541052002756",nama:"SRI SHOLATI",tgl:4,denda:29999997,alamat:"DK. KRANDON RT. 02/03 DS. DONOREJO",pendebetan:"211052003199",produk:"Murabahah"},
-  {no:109,noRekening:"541052002076",nama:"SUBKHI",tgl:1,denda:1446664,alamat:"DK. PONORAGAN RT. 05/02 DS.",pendebetan:"211052002603",produk:"Murabahah"},
-  {no:110,noRekening:"541052002454",nama:"SUDIRO",tgl:9,denda:46077784,alamat:"DK. REJOSARI RT 08/04 DS.SENDANG",pendebetan:"211052001450",produk:"Murabahah"},
-  {no:111,noRekening:"541052002270",nama:"SUGIYONO",tgl:23,denda:11036662,alamat:"DK.DAMPYAK RT 05/03 DS.BOJA TERSONO",pendebetan:"211052001195",produk:"Murabahah"},
-  {no:112,noRekening:"541052003053",nama:"SUKADRI",tgl:23,denda:1354167,alamat:"DK. PADENOKAN RT. 01/01 DS.",pendebetan:"211052003260",produk:"Murabahah"},
-  {no:113,noRekening:"541052003026",nama:"SULASIH",tgl:15,denda:1950000,alamat:"DK. SENDANG RT. 02/01 DS. SENDANG",pendebetan:"211052002469",produk:"Murabahah"},
-  {no:115,noRekening:"541052002669",nama:"SUNARTO",tgl:28,denda:80555560,alamat:"DK. PONORAGAN RT. 04/02 DS.",pendebetan:"211052003289",produk:"Murabahah"},
-  {no:116,noRekening:"541052002942",nama:"SUPARI",tgl:18,denda:541667,alamat:"DK. GUMELEM RT. 11/03 DS. GUMAWANG",pendebetan:"211052004112",produk:"Murabahah"},
-  {no:117,noRekening:"541052003119",nama:"SURATIN",tgl:21,denda:393333,alamat:"DK.SENDANG RT.03/02 DS.SENDANG",pendebetan:"211052003500",produk:"Murabahah"},
-  {no:119,noRekening:"541052003069",nama:"SURIP",tgl:11,denda:11277778,alamat:"DS. SUKOMANGLI RT 02/01 KEC. REBAN",pendebetan:"211052004309",produk:"Murabahah"},
-  {no:120,noRekening:"541052001420",nama:"SUROSO",tgl:6,denda:62027784,alamat:"DK KEBANGGAN RT 06/03 DS SENDANG",pendebetan:"211052001629",produk:"Murabahah"},
-  {no:121,noRekening:"541052003070",nama:"SUSANTO",tgl:13,denda:479167,alamat:"DK. KARANGTALUN RT 04/03 DS. BULU KEC",pendebetan:"211052004086",produk:"Murabahah"},
-  {no:122,noRekening:"541052001398",nama:"SUSMIYATI",tgl:2,denda:44488890,alamat:"DK. PEKUNCEN RT. 01/02 DS. REJOSARI",pendebetan:"211052002369",produk:"Murabahah"},
-  {no:123,noRekening:"541052002913",nama:"SUTIMAH",tgl:3,denda:4900002,alamat:"DK.KEBANGGAN RT.06/03 DS.SENDANG-",pendebetan:"211052003823",produk:"Murabahah"},
-  {no:124,noRekening:"541052002964",nama:"SYAIR",tgl:17,denda:8055560,alamat:"DK. LOBANG RT. 08/01 DS. LOBANG KEC.",pendebetan:"211052004146",produk:"Murabahah"},
-  {no:125,noRekening:"541052000548",nama:"TARMAI",tgl:30,denda:8960000,alamat:"ROMBEH SIPARRT/RW. 003/04 BANDAR",pendebetan:"211052100048",produk:"Murabahah"},
-  {no:126,noRekening:"541052001508",nama:"TITI HARYANTI",tgl:4,denda:128888888,alamat:"LIMPUNG RT.05/02 LIMPUNG BATANG",pendebetan:"211052001250",produk:"Murabahah"},
-  {no:127,noRekening:"541052001862",nama:"TITIN SUWARNI",tgl:29,denda:183666664,alamat:"RT 01/02 BANYUPUTIH DS.BANYUPUTIH",pendebetan:"211052001487",produk:"Murabahah"},
-  {no:128,noRekening:"541052003019",nama:"TIWIK HANDINI",tgl:1,denda:2874999,alamat:"DK. BANARAN RT 04/02 DS. BABADAN KEC.",pendebetan:"211052004263",produk:"Murabahah"},
-  {no:130,noRekening:"541052002770",nama:"TRI HADI WIBOWO",tgl:16,denda:15166661,alamat:"DK.BANARAN II RT.04/02 DS.BABADAN -",pendebetan:"211052003969",produk:"Murabahah"},
-  {no:131,noRekening:"541052002844",nama:"TRI PUJI HASTUTI",tgl:28,denda:4833334,alamat:"DK. LIMBANGAN RT. 04/02 DS. REJOSARI",pendebetan:"211052002525",produk:"Murabahah"},
-  {no:132,noRekening:"541052002874",nama:"TURIPAH",tgl:24,denda:325000,alamat:"DK.DURENSARI RT.01/03 DS.DURENOMBO",pendebetan:"211052004038",produk:"Murabahah"},
-  {no:133,noRekening:"541052003096",nama:"TUTUR TURAH",tgl:29,denda:1069444,alamat:"DK. KEBUTUH RT 01/02 DS. KARANGANYAR",pendebetan:"211052004012",produk:"Murabahah"},
-  {no:134,noRekening:"541052002297",nama:"UNTUNG SETYA BUDI",tgl:21,denda:11100005,alamat:"DK. GEDONGAN RT. 03/01 DS. REJOSARI",pendebetan:"211052003027",produk:"Murabahah"},
-  {no:135,noRekening:"541052001824",nama:"USWATUN HASANAH",tgl:12,denda:302226,alamat:"DK. PETAMANAN RT. 06/03 DS. BANYUPUTIH",pendebetan:"211052002719",produk:"Murabahah"},
-  {no:136,noRekening:"541052002928",nama:"WAHONO",tgl:6,denda:479170,alamat:"DK.SENDANG RT.03/02 TERSONO",pendebetan:"211052003947",produk:"Murabahah"},
-  {no:137,noRekening:"541052002950",nama:"WAHYO",tgl:6,denda:7486116,alamat:"DK. SIWARAK RT. 05/05 DS. SELOKARTO",pendebetan:"211052004136",produk:"Murabahah"},
-  {no:138,noRekening:"541052000588",nama:"WAHYUDIN",tgl:10,denda:32499997,alamat:"PUCANGGADING UTARA RT 01/03 BANDAR",pendebetan:"211052000235",produk:"Murabahah"},
-  {no:139,noRekening:"541052003079",nama:"YANIK KHIKMATUL",tgl:16,denda:431250,alamat:"DK. LIMBANGAN RT 04/02 DS. REJOSARI",pendebetan:"211052002022",produk:"Murabahah"},
-  {no:140,noRekening:"541052002456",nama:"YESI RAHMAWATI",tgl:17,denda:339325014,alamat:"DK. RINGINSARI RT. 04/02 DS. SURODADI",pendebetan:"211052002962",produk:"Murabahah"},
-  {no:141,noRekening:"541052002867",nama:"ZAMRONI",tgl:10,denda:4027776,alamat:"GEDONGAN REJOSARI BART/RW. 006/001",pendebetan:"211052000430",produk:"Murabahah"},
-  {no:142,noRekening:"541052003123",nama:"KHUMAEDI",tgl:30,denda:491667,alamat:"DK. LIMBANGAN RT 04/02 DS. REJOSARI",pendebetan:"211052001479",produk:"Murabahah"},
-  {no:143,noRekening:"541052002630",nama:"KUWATI",tgl:5,denda:2266660,alamat:"DK.SENDANG RT.02/01 DS.SENDANG-",pendebetan:"211052003802",produk:"Murabahah"},
-  {no:144,noRekening:"541052002631",nama:"ΜΙΑΤΙ",tgl:6,denda:905556,alamat:"DK.SENDANG RT.01/01 DS.SENDANG",pendebetan:"211052003803",produk:"Murabahah"},
-  {no:145,noRekening:"541052002228",nama:"NURHAYATI",tgl:4,denda:98680556,alamat:"DK. KARANGJATI RT. 02/03 DS. KEBUMEN",pendebetan:"211052003415",produk:"Murabahah"},
-  {no:146,noRekening:"541052003072",nama:"SAMARI",tgl:26,denda:476389,alamat:"DK.SENDANG RT.03/02 DS. SENDANG -",pendebetan:"211052003960",produk:"Murabahah"},
-  {no:147,noRekening:"541052001104",nama:"SAPTOWATI",tgl:12,denda:4533330,alamat:"DK.PEJATEN RT 04/03 REJOSARI BARAT",pendebetan:"211052000817",produk:"Murabahah"},
-  {no:148,noRekening:"541052002578",nama:"SITI SOKHIKНАН",tgl:28,denda:1711115,alamat:"DK.CEKELAN RT.06/02 DS.PENUNDAN -",pendebetan:"211052003776",produk:"Murabahah"},
-  {no:149,noRekening:"541052002962",nama:"SRI HIDAYAWATI",tgl:17,denda:2416666,alamat:"DK. REJOSARI RT. 07/04 DS. SENDANG KEC.",pendebetan:"211052004145",produk:"Murabahah"},
-  {no:150,noRekening:"541052003056",nama:"ТОНА",tgl:6,denda:1150000,alamat:"DK. KEBANGGAN RT. 05/03 DS. SENDANG",pendebetan:"211052002362",produk:"Murabahah"},
-  {no:151,noRekening:"541052002846",nama:"WAHYUNINGSIH",tgl:30,denda:1300000,alamat:"DK. PONORAGAN RT. 02/02 DS.",pendebetan:"211052002956",produk:"Murabahah"},
-  {no:152,noRekening:"551052000135",nama:"SITI MISRINA",tgl:20,denda:12220000,alamat:"TAMBAHREJO RT 03/04 BANDAR",pendebetan:"211052000266",produk:"Musyarakah"},
-  {no:153,noRekening:"551052000142",nama:"KHOMSATUN",tgl:28,denda:26800000,alamat:"DK WRAGE RT03/04/TAMBAHREJO",pendebetan:"211052000311",produk:"Musyarakah"},
-  {no:154,noRekening:"551052000154",nama:"SUJARNO",tgl:11,denda:10316510,alamat:"GEDONGAN REJOSARI BART/RW.",pendebetan:"211052000113",produk:"Musyarakah"},
-  {no:155,noRekening:"551052000381",nama:"AHMAD SOBIRIN",tgl:28,denda:25875000,alamat:"DK.KARANGJATI RT 01/02",pendebetan:"211052001108",produk:"Musyarakah"},
-  {no:156,noRekening:"551052000416",nama:"TEGUH MARYONO",tgl:25,denda:5182671,alamat:"DK.MANGGINGAN RT 05/02",pendebetan:"211052001196",produk:"Musyarakah"},
-  {no:157,noRekening:"551052000515",nama:"WAHIDIN",tgl:10,denda:18440000,alamat:"DK.WADAS RT 05/01 DS.SELOKARTO",pendebetan:"211052001467",produk:"Musyarakah"},
-  {no:158,noRekening:"551052000525",nama:"NASIRUN",tgl:26,denda:325490000,alamat:"KARANG GONDANG RT 01/01",pendebetan:"211052000437",produk:"Musyarakah"},
-  {no:159,noRekening:"551052000573",nama:"ΤΑ'ΑΤΙ",tgl:4,denda:6890000,alamat:"PUCANGGADINGRT/RW. 001/003",pendebetan:"211052000393",produk:"Musyarakah"},
-  {no:160,noRekening:"551052000575",nama:"SUPRIYANTO",tgl:5,denda:504609633,alamat:"SIWONOTRT/RW. 009/002",pendebetan:"211052000543",produk:"Musyarakah"},
-  {no:161,noRekening:"551052000635",nama:"SABARI",tgl:24,denda:3345000,alamat:"DS.REJOSARI BARAT RT",pendebetan:"211052000659",produk:"Musyarakah"},
-  {no:162,noRekening:"551052000729",nama:"TURYANTO",tgl:13,denda:5509625,alamat:"DK. WATES RT 01/02 DS.",pendebetan:"211052002305",produk:"Musyarakah"},
-  {no:163,noRekening:"551052000823",nama:"KUS RAHAYU",tgl:6,denda:13554375,alamat:"DK LIMPUNGM RT 04/02 BATANG",pendebetan:"211052001265",produk:"Musyarakah"},
-  {no:164,noRekening:"551052000965",nama:"MOFAN",tgl:25,denda:33654500,alamat:"DK. SUKOREJO RT. 01/02 DS.",pendebetan:"211052002880",produk:"Musyarakah"},
-  {no:165,noRekening:"551052001018",nama:"YAKUTI",tgl:27,denda:46185000,alamat:"DK. KEBANGGAN RT. 06/03 DS.",pendebetan:"211052002969",produk:"Musyarakah"},
-  {no:166,noRekening:"551052001034",nama:"SUWANDI",tgl:28,denda:9225037,alamat:"DK, LIMBANGAN RT 01/02 REJOSARI",pendebetan:"211052000214",produk:"Musyarakah"},
-  {no:167,noRekening:"551052001044",nama:"NASOHA",tgl:15,denda:19613250,alamat:"DK. AMPELGADING RT 01/01 DS.",pendebetan:"211052003009",produk:"Musyarakah"},
-  {no:168,noRekening:"551052001089",nama:"KHAIRUDIN",tgl:9,denda:21869729,alamat:"LengganganRT/RW. 005/0 Sukorejo",pendebetan:"211052000098",produk:"Musyarakah"},
-  {no:169,noRekening:"551052001155",nama:"UMAYATI",tgl:30,denda:686144528,alamat:"DK. GEDONGAN RT 07/01 DS.",pendebetan:"211052002995",produk:"Musyarakah"},
-  {no:170,noRekening:"551052001180",nama:"SLAMET RIYANTO",tgl:30,denda:101530000,alamat:"GedonganRT/RW. 004/0 Rejosari Barat",pendebetan:"211052000074",produk:"Musyarakah"},
-  {no:171,noRekening:"551052001216",nama:"MALIKHAH",tgl:19,denda:41869172,alamat:"DK. MENTOSARI RT. 07/02 DS.",pendebetan:"211052002510",produk:"Musyarakah"},
-  {no:172,noRekening:"551052001524",nama:"NUR AINIYAH",tgl:9,denda:4076194,alamat:"DS. SUKOREJO RT 05/01 LIMPUNG",pendebetan:"211052000671",produk:"Musyarakah"},
-  {no:173,noRekening:"551052001534",nama:"AHMAD WAHIDIN",tgl:27,denda:26250670,alamat:"DK. SUKOREJO RT. 02/02 SUKOREJO",pendebetan:"211052002274",produk:"Musyarakah"},
-  {no:174,noRekening:"551052001646",nama:"FENI YULISTIANI",tgl:29,denda:911400,alamat:"DK.KEBANGGAN RT.05/03",pendebetan:"211052003868",produk:"Musyarakah"},
-  {no:175,noRekening:"551052001718",nama:"TURIPAH",tgl:28,denda:690000,alamat:"DK.LIMBANGAN RT.04/02",pendebetan:"211052003860",produk:"Musyarakah"},
-  {no:176,noRekening:"551052001731",nama:"EKO PRATIKNO",tgl:1,denda:1784000,alamat:"DK.SIDOMULYO RT.01/01",pendebetan:"211052004030",produk:"Musyarakah"},
-  {no:177,noRekening:"551052001734",nama:"KHAERUDIN",tgl:7,denda:574540,alamat:"DK. KEBANGGAN RT 05/03 DS.",pendebetan:"211052001472",produk:"Musyarakah"},
-  {no:178,noRekening:"551052001756",nama:"SLAMET",tgl:20,denda:20156038,alamat:"DK. DURENSARI RT. 02/03 DS.",pendebetan:"211052002455",produk:"Musyarakah"},
-  {no:179,noRekening:"551052001767",nama:"ANIK ERMAWATI",tgl:6,denda:4675800,alamat:"DK.GENTAN RT.02/02",pendebetan:"211052004062",produk:"Musyarakah"},
-  {no:180,noRekening:"551052001783",nama:"MAIMANAH",tgl:20,denda:230500,alamat:"DK. GETAS RT 01/01 DS. GETAS KEC.",pendebetan:"211052004079",produk:"Musyarakah"},
-  {no:181,noRekening:"551052001787",nama:"ZAENUDIN",tgl:31,denda:7963044,alamat:"DK.DURENSARI RT.02/03",pendebetan:"211052003831",produk:"Musyarakah"},
-  {no:182,noRekening:"551052001806",nama:"RISA NUR RANI",tgl:6,denda:2826680,alamat:"DK. BANJARAN RT. 01 1/003 DS.",pendebetan:"211052004135",produk:"Musyarakah"},
-  {no:183,noRekening:"551052001809",nama:"RONI FASLAH",tgl:11,denda:553016,alamat:"DK.KRANGKOAN RT.03/02",pendebetan:"211052004021",produk:"Musyarakah"},
-  {no:184,noRekening:"551052001817",nama:"MUHSININ",tgl:21,denda:225480,alamat:"DK.DLISEN RT.0101 DS.DLISEN-",pendebetan:"211052003844",produk:"Musyarakah"},
-  {no:185,noRekening:"551052001836",nama:"JAWAN",tgl:15,denda:191640,alamat:"DK.BANTARAN RT.018/05",pendebetan:"211052003973",produk:"Musyarakah"},
-  {no:186,noRekening:"551052001839",nama:"WASDURI",tgl:22,denda:2841533,alamat:"DK. KURIPAN RT 05/01 DS. KURIPAN",pendebetan:"211052004245",produk:"Musyarakah"},
-  {no:187,noRekening:"551052001923",nama:"MUFATEHATI",tgl:5,denda:522626,alamat:"DK. PEJATEN RT 03/03 DS. REJOSARI",pendebetan:"211052002153",produk:"Musyarakah"},
-  {no:188,noRekening:"551052001934",nama:"ROKHADI",tgl:3,denda:117980,alamat:"DK. SENDANG RT. 03/02 DS.",pendebetan:"211052004100",produk:"Musyarakah"},
-  {no:189,noRekening:"551052001944",nama:"DIAN NOVISANTI",tgl:29,denda:11000,alamat:"DK. PEJATEN RT. 02/03 REJOSARI",pendebetan:"211052002256",produk:"Musyarakah"},
-];
+const SEED_DATA = [{"rek":"541052000201","nama":"KHOIRUDIN","tgl":4,"denda":33833366,"alamat":"PUCANGGADINGRT/RW. 007/004  BANDAR BATANG","pendebetan":"211052100031","produk":"Murabahah"},{"rek":"541052000210","nama":"ISLAHUL KHIKAM","tgl":20,"denda":16916727,"alamat":"PUCANGGADING TIMUR RT01/01 BANDAR","pendebetan":"211052000439","produk":"Murabahah"},{"rek":"541052000235","nama":"SURIP SUTRESNO","tgl":4,"denda":21980000,"alamat":"PUCANGGADINGRT/RW. 04/02  BANDAR /BATANG","pendebetan":"211052100005","produk":"Murabahah"},{"rek":"541052000239","nama":"IRWANTO","tgl":10,"denda":29480032,"alamat":"DK. PUCANGGADING UTARA RT 03/03 PUCANGGADING, BANDAR","pendebetan":"211052000486","produk":"Murabahah"},{"rek":"541052000455","nama":"MAHFUDIN","tgl":23,"denda":26320094,"alamat":"PUCANGGADING RT03/05 BANDAR","pendebetan":"211052000173","produk":"Murabahah"},{"rek":"541052000544","nama":"ANTONO","tgl":21,"denda":21933363,"alamat":"DS BANDAR RT 02/05 BANDAR BATANG","pendebetan":"211052000919","produk":"Murabahah"},{"rek":"541052000548","nama":"TARMAI","tgl":30,"denda":20608000,"alamat":"ROMBEH SIPARRT/RW. 003/04  BANDAR BATANG","pendebetan":"211052100048","produk":"Murabahah"},{"rek":"541052000588","nama":"WAHYUDIN","tgl":10,"denda":65937497,"alamat":"PUCANGGADING UTARA RT 01/03 BANDAR","pendebetan":"211052000235","produk":"Murabahah"},{"rek":"541052000621","nama":"SAYOMAH","tgl":15,"denda":19200029,"alamat":"DK, PROTO RT 03/05 TAMBAHREJO BANDAR","pendebetan":"211052000858","produk":"Murabahah"},{"rek":"541052000889","nama":"KADARI","tgl":28,"denda":11022000,"alamat":"SIGUCI PECALUNGAN RT 03/01","pendebetan":"211052000387","produk":"Murabahah"},{"rek":"541052000927","nama":"MARWAN","tgl":7,"denda":187937500,"alamat":"DK.TEMPURAN RT 04/02DS. HARJOWINANGUN BARAT TERSONO","pendebetan":"211052001505","produk":"Murabahah"},{"rek":"541052000929","nama":"H DULJALIL","tgl":7,"denda":19680000,"alamat":"Condong TambahrejoRT/RW. 03/02 Tambahrejo Bandar Batang","pendebetan":"211052000154","produk":"Murabahah"},{"rek":"541052001104","nama":"SAPTOWATI","tgl":12,"denda":10483360,"alamat":"DK.PEJATEN RT 04/03 REJOSARI BARAT TERSONO","pendebetan":"211052000817","produk":"Murabahah"},{"rek":"541052001345","nama":"MAHYUN","tgl":10,"denda":80072265,"alamat":"DK.KEBANGGAN RT 06/03 SENDANG TERSONO","pendebetan":"211052001425","produk":"Murabahah"},{"rek":"541052001384","nama":"ERIK YUVENALIS SISWANDI","tgl":18,"denda":435200000,"alamat":"DK. GEPOR RT 04/03 DS. LIMPUNG LIMPUNG","pendebetan":"211052001870","produk":"Murabahah"},{"rek":"541052001398","nama":"SUSMIYATI","tgl":2,"denda":70922268,"alamat":"DK. PEKUNCEN RT. 01/02 DS. REJOSARI TIMUR TERSONO","pendebetan":"211052002369","produk":"Murabahah"},{"rek":"541052001420","nama":"SUROSO","tgl":6,"denda":72017413,"alamat":"DK KEBANGGAN RT 06/03 DS SENDANG TERSONO BATANG","pendebetan":"211052001629","produk":"Murabahah"},{"rek":"541052001508","nama":"TITI HARYANTI/ SG/ 085290057933","tgl":4,"denda":192222272,"alamat":"LIMPUNG RT.05/02 LIMPUNG BATANG","pendebetan":"211052001250","produk":"Murabahah"},{"rek":"541052001549","nama":"LUSIANA","tgl":7,"denda":14200000,"alamat":"DK. PAGOTAN RT. 01/03 DS. KALISALAK KEC. LIMPUNG KAB. BATANG","pendebetan":"211052002610","produk":"Murabahah"},{"rek":"541052001562","nama":"NUR KHOYIN","tgl":30,"denda":13411152,"alamat":"DK. WATES RT. 01/02 WONOKERSO LIMPUNG","pendebetan":"211052002106","produk":"Murabahah"},{"rek":"541052001586","nama":"SITI RIWAYATI HJ","tgl":4,"denda":1621614614,"alamat":"DK. KARANGANYAR RT. 07/04 DS. SUMUR BANGER TERSONO","pendebetan":"211052002350","produk":"Murabahah"},{"rek":"541052001689","nama":"RAHMAD EFENDI","tgl":11,"denda":13700000,"alamat":"DK. BEJI RT. 06/02 DS. BEJI KEC. TULIS KAB. BATANG","pendebetan":"211052002777","produk":"Murabahah"},{"rek":"541052001691","nama":"RUSIDAH","tgl":12,"denda":74272257,"alamat":"DK. REJOSARI RT 07/04 DS. SENDANG TERSONO","pendebetan":"211052001725","produk":"Murabahah"},{"rek":"541052001721","nama":"EKO SANTOSO","tgl":17,"denda":2291644477,"alamat":"DK. KAUMAN RT. 01/03 DS. TERSONO KEC. TERSONO KAB. BATANG","pendebetan":"211052002806","produk":"Murabahah"},{"rek":"541052001824","nama":"USWATUN HASANAH","tgl":12,"denda":933376,"alamat":"DK. PETAMANAN RT. 06/03 DS. BANYUPUTIH KEC. BANYUPUTIH KAB. BATANG","pendebetan":"211052002719","produk":"Murabahah"},{"rek":"541052001862","nama":"TITIN SUWARNI","tgl":29,"denda":257766694,"alamat":"DS.BANYUPUTIH RT 01/02 BANYUPUTIH BATANG","pendebetan":"211052001487","produk":"Murabahah"},{"rek":"541052001990","nama":"SETIARSO A.MA","tgl":4,"denda":354666704,"alamat":"REJOSARI BARAT RT 01 RW 01.TERSONO","pendebetan":"211052000562","produk":"Murabahah"},{"rek":"541052002002","nama":"PATAH","tgl":22,"denda":24860000,"alamat":"LimbanganRT/RW. 004/0 Rejosari Barat Tersono Batang","pendebetan":"211052000058","produk":"Murabahah"},{"rek":"541052002024","nama":"NUR HIDAYATI","tgl":2,"denda":242937521,"alamat":"DK. KEBANGGAN RT 05/03 DS. SENDANG TERSONO","pendebetan":"211052001754","produk":"Murabahah"},{"rek":"541052002076","nama":"SUBKHI","tgl":1,"denda":2747533,"alamat":"DK. PONORAGAN RT. 05/02 DS. TANJUNGSARI KEC. TERSONO KAB. BATANG","pendebetan":"211052002603","produk":"Murabahah"},{"rek":"541052002228","nama":"NURHAYATI","tgl":4,"denda":115694456,"alamat":"DK. KARANGJATI RT. 02/03 DS. KEBUMEN KEC. TERSONO KAB. BATANG","pendebetan":"211052003415","produk":"Murabahah"},{"rek":"541052002240","nama":"EKO SANTOSO","tgl":15,"denda":860625000,"alamat":"DK. KAUMAN RT. 01/03 DS. TERSONO KEC. TERSONO KAB. BATANG","pendebetan":"211052002618","produk":"Murabahah"},{"rek":"541052002243","nama":"PARIKHIN","tgl":20,"denda":98437509,"alamat":"DK. SURJO RT. 08/03 DS. SURJO KEC. BAWANG KAB. BATANG","pendebetan":"211052003492","produk":"Murabahah"},{"rek":"541052002245","nama":"JUMIATI","tgl":22,"denda":843750000,"alamat":"DK. PAKIS RT. 03/01 DS. HARJOWINANGUN TIMUR KEC. TERSONO KAB. BATANG","pendebetan":"211052002881","produk":"Murabahah"},{"rek":"541052002270","nama":"SUGIYONO","tgl":23,"denda":13393336,"alamat":"DK.DAMPYAK RT 05/03 DS.BOJA TERSONO","pendebetan":"211052001195","produk":"Murabahah"},{"rek":"541052002297","nama":"UNTUNG SETYA BUDI","tgl":21,"denda":15150032,"alamat":"DK. GEDONGAN RT. 03/01 DS. REJOSARI BARAT KEC. TERSONO KAB. BATANG","pendebetan":"211052003027","produk":"Murabahah"},{"rek":"541052002434","nama":"NUR HIDAYAH","tgl":6,"denda":17810779,"alamat":"DK.DERMAN RT.019/05 DS.GUMAWANG - PECALUNGAN","pendebetan":"211052003640","produk":"Murabahah"},{"rek":"541052002454","nama":"SUDIRO","tgl":9,"denda":31687513,"alamat":"DK. REJOSARI RT 08/04 DS.SENDANG TERSONO BATANG","pendebetan":"211052001450","produk":"Murabahah"},{"rek":"541052002455","nama":"JUMAHAR","tgl":16,"denda":123033348,"alamat":"CANDI GUGUR RT 04/01 DS. CANDI GUGUR BAWANG","pendebetan":"211052001493","produk":"Murabahah"},{"rek":"541052002456","nama":"YESI RAHMAWATI","tgl":17,"denda":347404181,"alamat":"DK. RINGINSARI RT. 04/02 DS. SURODADI KEC. GRINGSING KAB. BATANG","pendebetan":"211052002962","produk":"Murabahah"},{"rek":"541052002477","nama":"MOHAMMAD FENGKI HUSAIN","tgl":13,"denda":18620322,"alamat":"DK.GEDONGANRT.04/01 DS.REJOSARI BARAT - TERSONO","pendebetan":"211052003663","produk":"Murabahah"},{"rek":"541052002486","nama":"SUMARNI","tgl":28,"denda":230625000,"alamat":"DK. KARANGJATI RT. 02/03 DS. KEBUMEN TERSONO","pendebetan":"211052002200","produk":"Murabahah"},{"rek":"541052002494","nama":"RIYADEN","tgl":16,"denda":8177780,"alamat":"DK.KEDUNG DOWO RT.01/03 DS.PRETEK - PECALUNGAN","pendebetan":"211052003671","produk":"Murabahah"},{"rek":"541052002531","nama":"SITI ROMLAH","tgl":15,"denda":41614585,"alamat":"TERSONO BATANG","pendebetan":"211052001016","produk":"Murabahah"},{"rek":"541052002585","nama":"KOMARIYAH","tgl":18,"denda":1720011,"alamat":"KOMP. AL AZHAR NO.1 RT. 02/01 DS. KAMPUNG PELITA KEC. LUBUK BAJA KAB. BATAM","pendebetan":"211052003146","produk":"Murabahah"},{"rek":"541052002630","nama":"KUWATI","tgl":5,"denda":2466677,"alamat":"DK.SENDANG RT.02/01 DS.SENDANG - TERSONO","pendebetan":"211052003802","produk":"Murabahah"},{"rek":"541052002631","nama":"MIATI","tgl":6,"denda":905556,"alamat":"DK.SENDANG RT.01/01 DS.SENDANG -TERSONO","pendebetan":"211052003803","produk":"Murabahah"},{"rek":"541052002669","nama":"SUNARTO","tgl":28,"denda":80555560,"alamat":"DK. PONORAGAN RT. 04/02 DS. TANJUNGSARI KEC. TERSONO KAB. BATANG","pendebetan":"211052003289","produk":"Murabahah"},{"rek":"541052002680","nama":"MUJIATI","tgl":8,"denda":18527788,"alamat":"DK. MRAJI RT 02/04 DS. WONOKERSO KEC. LIMPUNG BATANG","pendebetan":"211052003833","produk":"Murabahah"},{"rek":"541052002701","nama":"GATRA IMAM ARIFIYANTO","tgl":17,"denda":10069445,"alamat":"DK. GEDONGAN RT 01/01 DS. REJOSARI BARAT TERSONO","pendebetan":"211052000856","produk":"Murabahah"},{"rek":"541052002703","nama":"AKH. FAOZAN","tgl":19,"denda":19333344,"alamat":"DK.SOKOSAWIT RT.01/07 DS.AMONGROGO - LIMPUNG","pendebetan":"211052003557","produk":"Murabahah"},{"rek":"541052002706","nama":"ASMAWI","tgl":24,"denda":3222222,"alamat":"DK. GEDONG RT. 09/03 DS. TIMBANG KEC. BANYUPUTIH KAB. BATANG","pendebetan":"211052003007","produk":"Murabahah"},{"rek":"541052002707","nama":"LAILATUN NAFI'AH","tgl":24,"denda":59208324,"alamat":"DK. KEDAWUNG RT. 02/01 DS. KEDAWUNG BANYUPUTIH","pendebetan":"211052002536","produk":"Murabahah"},{"rek":"541052002716","nama":"MEY KURNIAWATI","tgl":2,"denda":27370000,"alamat":"DK. SIDOMULYO RT 01/01 DS. SIDOMULYO LIMPUNG BATANG","pendebetan":"211052001817","produk":"Murabahah"},{"rek":"541052002731","nama":"AHMAD RIZKI","tgl":27,"denda":8055560,"alamat":"DK. REJOSARI RT 08/04 DS. SENDANG TERSONO","pendebetan":"211052002745","produk":"Murabahah"},{"rek":"541052002733","nama":"EKO HARYANTO","tgl":4,"denda":6444444,"alamat":"DK.SENDANG RT.02/01 DS.SENDANG - TERSONO","pendebetan":"211052003871","produk":"Murabahah"},{"rek":"541052002748","nama":"MUKHSININ","tgl":26,"denda":1208333,"alamat":"DK.MLANGI RT.02/05 DS.TERSONO - TERSONO","pendebetan":"211052003879","produk":"Murabahah"},{"rek":"541052002751","nama":"MUHAMMAD NAJIB NASRULLAH","tgl":28,"denda":16111110,"alamat":"DK.BANTENG RT.01/01 DS.BANTENG - TERSONO","pendebetan":"211052003881","produk":"Murabahah"},{"rek":"541052002754","nama":"MUKHAYATI","tgl":3,"denda":16111112,"alamat":"DK.BUBAKAN HAJI RT.01/01 DS.HARJOWINANGUN TIMUR","pendebetan":"211052003885","produk":"Murabahah"},{"rek":"541052002756","nama":"SRI SHOLATI","tgl":4,"denda":33333330,"alamat":"DK. KRANDON RT. 02/03 DS. DONOREJO KEC. LIMPUNG KAB. BATANG","pendebetan":"211052003199","produk":"Murabahah"},{"rek":"541052002770","nama":"TRI HADI WIBOWO","tgl":16,"denda":13351162,"alamat":"DK.BANARAN II RT.04/02 DS.BABADAN - LIMPUNG","pendebetan":"211052003969","produk":"Murabahah"},{"rek":"541052002773","nama":"NURKHOYIN","tgl":17,"denda":24166660,"alamat":"DK.WONOSOBO RT.02/03 DS.WONOSOBO - REBAN","pendebetan":"211052003971","produk":"Murabahah"},{"rek":"541052002779","nama":"KUSTIYAH","tgl":30,"denda":33833328,"alamat":"DK.KALISALAK RT.02/01 DS.KALISALAK - LIMPUNG","pendebetan":"211052003619","produk":"Murabahah"},{"rek":"541052002796","nama":"SAIT","tgl":24,"denda":3222224,"alamat":"DK. BAKAN RT 09/01 DS. HARJOWINANGUN TIMUR TERSONO","pendebetan":"211052002275","produk":"Murabahah"},{"rek":"541052002797","nama":"KARNO","tgl":25,"denda":9200105,"alamat":"DK. SIDOKERSO RT 01/05 DS. TENGGALUNGHARJO SUBAH","pendebetan":"211052001413","produk":"Murabahah"},{"rek":"541052002825","nama":"RIAN ADE PRATAMA","tgl":1,"denda":13000000,"alamat":"LIMPUNG RT 03/02 LIMPUNG","pendebetan":"211052003665","produk":"Murabahah"},{"rek":"541052002826","nama":"BARIYAH","tgl":2,"denda":3250000,"alamat":"DK. DURENSARI RT. 04/03 DS. DURENOMBO KEC. SUBAH KAB. BATANG","pendebetan":"211052002588","produk":"Murabahah"},{"rek":"541052002847","nama":"ANI MURDIYANI","tgl":2,"denda":541667,"alamat":"DK.GEDONGAN RT.03/01 DS.REJOSARIBARAT - TERSONO","pendebetan":"211052004016","produk":"Murabahah"},{"rek":"541052002867","nama":"ZAMRONI","tgl":10,"denda":4027776,"alamat":"GEDONGAN REJOSARI BART/RW. 006/001  TERSONO BATANG","pendebetan":"211052000430","produk":"Murabahah"},{"rek":"541052002868","nama":"NUR ROFIK","tgl":11,"denda":11375000,"alamat":"DK.SUKOREJO RT.04/02 DS.SUKOREJO - LIMPUNG","pendebetan":"211052004035","produk":"Murabahah"},{"rek":"541052002871","nama":"EMA LUTFIA KURNIAWATI","tgl":17,"denda":5416665,"alamat":"DK. GEDONGAN RT. 06/01 DS. DS. REJOSARI BARAT KEC. TERSONO KAB. BATANG","pendebetan":"211052002766","produk":"Murabahah"},{"rek":"541052002886","nama":"SITI RODHIYAH","tgl":19,"denda":14499999,"alamat":"DK.NGALIYAN RT.03/01 DS.NGALIYAN - LIMPUNG","pendebetan":"211052003837","produk":"Murabahah"},{"rek":"541052002890","nama":"RIYA PURNAMASARI","tgl":22,"denda":1666667,"alamat":"JL.BINTORO VII RT.05/08 DS.PANDEANLAMPER - GAYAMSARI","pendebetan":"211052003656","produk":"Murabahah"},{"rek":"541052002897","nama":"JIHAN MAULANA YUSUF","tgl":4,"denda":3033336,"alamat":"DK.KAUMAN RT.03/03 DS.TERSONO - TERSONO","pendebetan":"211052003801","produk":"Murabahah"},{"rek":"541052002898","nama":"DIAH HUSNA ARIFAH","tgl":10,"denda":17875002,"alamat":"DK.WATES RT01/06 DS.KRANGGAN - TERSONO","pendebetan":"211052003626","produk":"Murabahah"},{"rek":"541052002913","nama":"SUTIMAH","tgl":3,"denda":5716663,"alamat":"DK.KEBANGGAN RT.06/03 DS.SENDANG - TERSONO","pendebetan":"211052003823","produk":"Murabahah"},{"rek":"541052002915","nama":"KUSRINTO","tgl":8,"denda":1787499,"alamat":"MILUWUNG RT 01/03 REJOSARI BARAT.TERSONO","pendebetan":"211052000389","produk":"Murabahah"},{"rek":"541052002926","nama":"REZA SAPUTRA ADI","tgl":30,"denda":1299999,"alamat":"DK.SEMPU RT 02/01 DS.SEMPU KEC.LIMPUNG BATANG","pendebetan":"211052004089","produk":"Murabahah"},{"rek":"541052002928","nama":"WAHONO","tgl":6,"denda":524927,"alamat":"DK.SENDANG RT.03/02 TERSONO","pendebetan":"211052003947","produk":"Murabahah"},{"rek":"541052002936","nama":"ISTIKHOMAH","tgl":13,"denda":7583331,"alamat":"DK. PEKUNCEN RT. 03/02 DS. REJOSARI TIMUR KEC. TERSONO KAB. BATANG","pendebetan":"211052004104","produk":"Murabahah"},{"rek":"541052002942","nama":"SUPARI","tgl":18,"denda":1083334,"alamat":"DK. GUMELEM RT. 11/03 DS. GUMAWANG  KEC. PECALUNGAN","pendebetan":"211052004112","produk":"Murabahah"},{"rek":"541052002943","nama":"RISDIYANTO","tgl":19,"denda":604167,"alamat":"DK. SIKUNIR RT. 08/02 DS. JLAMPRANG KEC. BAWANG KAB. BATANG","pendebetan":"211052004118","produk":"Murabahah"},{"rek":"541052002950","nama":"WAHYO","tgl":6,"denda":7486116,"alamat":"DK. SIWARAK RT. 05/05 DS. SELOKARTO KEC. PECALUNGAN KAB. BATANG","pendebetan":"211052004136","produk":"Murabahah"},{"rek":"541052002961","nama":"MEI DWI ARIS SETIA","tgl":14,"denda":408333,"alamat":"DK. JETIS RT. 01/02 DS. LOBANG KEC. LIMPUNG KAB. BATANG","pendebetan":"211052004143","produk":"Murabahah"},{"rek":"541052002962","nama":"SRI HIDAYAWATI","tgl":17,"denda":1208333,"alamat":"DK. REJOSARI RT. 07/04 DS. SENDANG KEC. TERSONO KAB. BATANG","pendebetan":"211052004145","produk":"Murabahah"},{"rek":"541052002964","nama":"SYAIR","tgl":17,"denda":8861116,"alamat":"DK. LOBANG RT. 08/01 DS. LOBANG KEC. LIMPUNG KAB. BATANG","pendebetan":"211052004146","produk":"Murabahah"},{"rek":"541052002971","nama":"RONDI","tgl":20,"denda":9132996,"alamat":"DK.SENDANG RT.02/01 DS.SENDANG - TERSONO","pendebetan":"211052003720","produk":"Murabahah"},{"rek":"541052002972","nama":"REPIN","tgl":20,"denda":2806735,"alamat":"DK.KEBONPETUNG RT.06/02 DS.REJOSARI BARAT - TERSONO","pendebetan":"211052003681","produk":"Murabahah"},{"rek":"541052002976","nama":"GALVIN ADI SAPUTRA","tgl":27,"denda":7583332,"alamat":"DK. GEDONGAN RT. 01/01 DS. REJOSARI BARAT KEC. TERSONO KAB. BATANG","pendebetan":"211052003285","produk":"Murabahah"},{"rek":"541052002979","nama":"APRILIYANTI","tgl":17,"denda":4062501,"alamat":"DK.SEMPU RT.01/03 DS.SEMPU-KEC.LIMPUNG","pendebetan":"211052003848","produk":"Murabahah"},{"rek":"541052002980","nama":"FINA SAFITRI","tgl":25,"denda":1020834,"alamat":"DK. KAUM RT. 04/01 DS. KEBUMEN KEC. TERSONO KAB. BATANG","pendebetan":"211052004225","produk":"Murabahah"},{"rek":"541052002983","nama":"MUKHSININ","tgl":29,"denda":270833,"alamat":"DK. REJOSARI RT. 07/04 DS. SENDANG KEC. TERSONO KAB.BATANG","pendebetan":"211052004231","produk":"Murabahah"},{"rek":"541052002987","nama":"SURONO","tgl":14,"denda":595833,"alamat":"DK KEDAWUNG RT/RW 005/001 DS KEDAWUNG KEC BANYUPUTIH BATANG","pendebetan":"211052004243","produk":"Murabahah"},{"rek":"541052002988","nama":"NIRAWATI","tgl":19,"denda":1701390,"alamat":"DK.CENDONO LOR RT. 02/01 DS.TEMBOK KEC.LIMPUNG","pendebetan":"211052001346","produk":"Murabahah"},{"rek":"541052002991","nama":"AHMAD TOKHIR","tgl":20,"denda":952778,"alamat":"DK. LIMBANGAN RT. 01/02 REJOSARI BARAT TERSONO","pendebetan":"211052001909","produk":"Murabahah"},{"rek":"541052002994","nama":"OKI SEPTIANI","tgl":23,"denda":541667,"alamat":"KALISARI RT 03/01 KALISARI BLADO","pendebetan":"211052000823","produk":"Murabahah"},{"rek":"541052002998","nama":"HARTATIK","tgl":3,"denda":2708333,"alamat":"DK. BANTENG RT. 03/01 DS. BANTENG KEC. TERSONO KAB. BATANG","pendebetan":"211052003278","produk":"Murabahah"},{"rek":"541052003000","nama":"MUKMIN","tgl":11,"denda":541667,"alamat":"DK.SENDANG RT.04/02 DS.SENDANG - TERSONO","pendebetan":"211052003812","produk":"Murabahah"},{"rek":"541052003004","nama":"FATONAH","tgl":13,"denda":1633332,"alamat":"DK. LOBANG RT 03/01 DS. LOBANG KEC. LIMPUNG BATANG","pendebetan":"211052004256","produk":"Murabahah"},{"rek":"541052003019","nama":"TIWIK HANDINI","tgl":1,"denda":1916670,"alamat":"DK. BANARAN RT 04/02 DS. BABADAN KEC. LIMPUNG BATANG","pendebetan":"211052004263","produk":"Murabahah"},{"rek":"541052003026","nama":"SULASIH","tgl":15,"denda":2600000,"alamat":"DK. SENDANG RT. 02/01 DS. SENDANG TERSONO","pendebetan":"211052002469","produk":"Murabahah"},{"rek":"541052003053","nama":"SUKADRI","tgl":23,"denda":1354167,"alamat":"DK. PADENOKAN RT. 01/01 DS. AMONGROGO KEC. LIMPUNG KAB. BATANG","pendebetan":"211052003260","produk":"Murabahah"},{"rek":"541052003056","nama":"TOHA","tgl":6,"denda":1150000,"alamat":"DK. KEBANGGAN RT. 05/03 DS. SENDANG TERSONO","pendebetan":"211052002362","produk":"Murabahah"},{"rek":"541052003057","nama":"ASLAKHUL ARIFIN","tgl":8,"denda":10733336,"alamat":"DK.GUNUNG TUMPENG RT.03/02 DS.DLISEN - LIMPUNG","pendebetan":"211052003985","produk":"Murabahah"},{"rek":"541052003069","nama":"SURIP","tgl":11,"denda":11277778,"alamat":"DS. SUKOMANGLI RT 02/01 KEC. REBAN BATANG","pendebetan":"211052004309","produk":"Murabahah"},{"rek":"541052003070","nama":"SUSANTO","tgl":13,"denda":479167,"alamat":"DK. KARANGTALUN RT 04/03 DS. BULU KEC BANYUPUTIH BATANG","pendebetan":"211052004086","produk":"Murabahah"},{"rek":"541052003072","nama":"SAMARI","tgl":26,"denda":476389,"alamat":"DK.SENDANG RT.03/02 DS. SENDANG - TERSONO","pendebetan":"211052003960","produk":"Murabahah"},{"rek":"541052003074","nama":"MISTIATI","tgl":3,"denda":479167,"alamat":"DK.DURENSARI RT.02/03 DS.DURENOMBO - SUBAH","pendebetan":"211052003718","produk":"Murabahah"},{"rek":"541052003082","nama":"KUSIYAH","tgl":24,"denda":1625000,"alamat":"DK. LIMBANGAN RT 03/02 REJOSARI BARAT, TERSONO","pendebetan":"211052000278","produk":"Murabahah"},{"rek":"541052003083","nama":"PAWITRI","tgl":29,"denda":4550001,"alamat":"DK. SENDANG RT. 01/01 DS. SENDANG TERSONO","pendebetan":"211052002314","produk":"Murabahah"},{"rek":"541052003087","nama":"AHMAD SOBIRIN","tgl":8,"denda":786666,"alamat":"DK PANDEK RT 03/06 DS KARANGTENGAH SUBAH BATANG","pendebetan":"211052001647","produk":"Murabahah"},{"rek":"541052003094","nama":"ABDUL AYIS SUTRISNO","tgl":27,"denda":566667,"alamat":"DK. DURENSARI RT 04/03 DS. DURENOMBO KEC. SUBAH BATANG","pendebetan":"211052004008","produk":"Murabahah"},{"rek":"541052003095","nama":"MISBAHUL MUNIR","tgl":28,"denda":491667,"alamat":"DK. LIMBANGAN RT. 04/01 REJOSARI BARAT TERSONO","pendebetan":"211052002261","produk":"Murabahah"},{"rek":"541052003097","nama":"ROKHIM SLAMET","tgl":2,"denda":6708334,"alamat":"DK. BANTENG RT. 03/01 DS. BANTENG TERSONO","pendebetan":"211052002503","produk":"Murabahah"},{"rek":"541052003098","nama":"DASMONO","tgl":2,"denda":396667,"alamat":"DK. DURENSARI RT 04/03 DS. DUREN OMBO KEC. SUBAH BATANG","pendebetan":"211052004009","produk":"Murabahah"},{"rek":"541052003104","nama":"HARMANTO","tgl":13,"denda":5750000,"alamat":"DK. KAYEN RT 02/01 DS. KALIBALIK BANYUPUTIH","pendebetan":"211052002139","produk":"Murabahah"},{"rek":"541052003120","nama":"PARSIKIN","tgl":28,"denda":2708333,"alamat":"DK. DURENSARI RT. 02/03 DS. DURENOMBO KEC. SUBAH KAB. BATANG","pendebetan":"211052002872","produk":"Murabahah"},{"rek":"541052003121","nama":"SRI WACHYUNI","tgl":29,"denda":1069444,"alamat":"DK. SENDANG RT. 01/01 DS. SENDANG KEC. TERSONO KAB. BATANG","pendebetan":"211052002589","produk":"Murabahah"},{"rek":"541052003122","nama":"ALFA KHOIRINA","tgl":30,"denda":368333,"alamat":"DK.GEDONGAN RT 04/01 DS.REJOSARI BARAT KEC.TERSONO BATANG","pendebetan":"211052004410","produk":"Murabahah"},{"rek":"541052003130","nama":"KARSIYAH","tgl":29,"denda":1208333,"alamat":"DK. SENDANG RT. 01/01 DS. SENDANG KEC. TERSONO KAB. BATANG","pendebetan":"211052002728","produk":"Murabahah"},{"rek":"541052003141","nama":"IGA BRIAN MAYASARI","tgl":25,"denda":230000,"alamat":"DK. GEPOR RT 01/03 DS. LIMPUNG KEC. LIMPUNG KAB. BATANG","pendebetan":"211052003724","produk":"Murabahah"},{"rek":"551052000135","nama":"SITI MISRINA","tgl":20,"denda":10942000,"alamat":"TAMBAHREJO RT 03/04 BANDAR","pendebetan":"211052000266","produk":"Musyarakah"},{"rek":"551052000142","nama":"KHOMSATUN","tgl":29,"denda":33192000,"alamat":"DK WRAGE RT03/04/TAMBAHREJO BANDAR","pendebetan":"211052000311","produk":"Musyarakah"},{"rek":"551052000154","nama":"SUJARNO","tgl":11,"denda":30792510,"alamat":"GEDONGAN REJOSARI BART/RW. 01/01  TERSONO BATANG","pendebetan":"211052000113","produk":"Musyarakah"},{"rek":"551052000381","nama":"AHMAD SOBIRIN","tgl":28,"denda":34258000,"alamat":"DK.KARANGJATI RT 01/02 PECALUNGAN BATANG","pendebetan":"211052001108","produk":"Musyarakah"},{"rek":"551052000416","nama":"TEGUH MARYONO","tgl":25,"denda":7306500,"alamat":"DK.MANGGINGAN RT 05/02 DS.SELOKARTO PECALUNGAN","pendebetan":"211052001196","produk":"Musyarakah"},{"rek":"551052000515","nama":"WAHIDIN","tgl":10,"denda":22855000,"alamat":"DK.WADAS RT 05/01 DS.SELOKARTO KEC.PECALUNGAN BATANG","pendebetan":"211052001467","produk":"Musyarakah"},{"rek":"551052000525","nama":"NASIRUN","tgl":26,"denda":516700000,"alamat":"KARANG GONDANG RT 01/01 PESALAKAN, BANDAR","pendebetan":"211052000437","produk":"Musyarakah"},{"rek":"551052000573","nama":"TA'ATI","tgl":4,"denda":8470000,"alamat":"PUCANGGADINGRT/RW. 001/003  BANDAR BATANG","pendebetan":"211052000393","produk":"Musyarakah"},{"rek":"551052000575","nama":"SUPRIYANTO","tgl":5,"denda":883100000,"alamat":"SIWONOTRT/RW. 009/002  WONOTUNGAL","pendebetan":"211052000543","produk":"Musyarakah"},{"rek":"551052000635","nama":"SABARI","tgl":24,"denda":9275000,"alamat":"DS.REJOSARI BARAT RT 06/01.TERSONO","pendebetan":"211052000659","produk":"Musyarakah"},{"rek":"551052000729","nama":"TURYANTO","tgl":13,"denda":8256625,"alamat":"DK. WATES RT 01/02 DS. WONOKERSO LIMPUNG","pendebetan":"211052002305","produk":"Musyarakah"},{"rek":"551052000823","nama":"KUS RAHAYU","tgl":6,"denda":19098375,"alamat":"DK LIMPUNGM RT 04/02 BATANG","pendebetan":"211052001265","produk":"Musyarakah"},{"rek":"551052000965","nama":"MOFAN","tgl":25,"denda":49029500,"alamat":"DK. SUKOREJO RT. 01/02 DS. SUKOREJO KEC. LIMPUNG KAB. BATANG","pendebetan":"211052002880","produk":"Musyarakah"},{"rek":"551052001018","nama":"YAKUTI","tgl":27,"denda":67525000,"alamat":"DK. KEBANGGAN RT. 06/03 DS. SENDANG KEC. TERSONO KAB. BATANG","pendebetan":"211052002969","produk":"Musyarakah"},{"rek":"551052001034","nama":"SUWANDI","tgl":28,"denda":13405037,"alamat":"DK, LIMBANGAN RT 01/02 REJOSARI BARAT TERSONO","pendebetan":"211052000214","produk":"Musyarakah"},{"rek":"551052001044","nama":"NASOHA","tgl":15,"denda":27832750,"alamat":"DK. AMPELGADING RT 01/01 DS. NGROTO KEC REBAN BTG","pendebetan":"211052003009","produk":"Musyarakah"},{"rek":"551052001089","nama":"KHAIRUDIN","tgl":9,"denda":31479729,"alamat":"LengganganRT/RW. 005/0 Sukorejo Limpung Batang","pendebetan":"211052000098","produk":"Musyarakah"},{"rek":"551052001155","nama":"UMAYATI","tgl":30,"denda":1672252028,"alamat":"DK. GEDONGAN RT 07/01 DS. CLAPAR SUBAH BATANG","pendebetan":"211052002995","produk":"Musyarakah"},{"rek":"551052001180","nama":"SLAMET RIYANTO","tgl":31,"denda":523534000,"alamat":"GedonganRT/RW. 004/0 Rejosari Barat Tersono Batang","pendebetan":"211052000074","produk":"Musyarakah"},{"rek":"551052001216","nama":"MALIKHAH","tgl":19,"denda":81868752,"alamat":"DK. MENTOSARI RT. 07/02 DS. MENTOSARI GRINGSING","pendebetan":"211052002510","produk":"Musyarakah"},{"rek":"551052001524","nama":"NUR AINIYAH","tgl":9,"denda":10064194,"alamat":"DS. SUKOREJO RT 05/01 LIMPUNG BATANG","pendebetan":"211052000671","produk":"Musyarakah"},{"rek":"551052001525","nama":"BAWON","tgl":9,"denda":4008000,"alamat":"DK. GEDONGAN RT 01/01 REJOSARI BARAT, TERSONO","pendebetan":"211052000335","produk":"Musyarakah"},{"rek":"551052001534","nama":"AHMAD WAHIDIN","tgl":27,"denda":64196925,"alamat":"DK. SUKOREJO RT. 02/02 SUKOREJO LIMPUNG","pendebetan":"211052002274","produk":"Musyarakah"},{"rek":"551052001549","nama":"MUSLIKHAH","tgl":10,"denda":9243343,"alamat":"REJOSARI BARAT RT 06/01.TERSONO","pendebetan":"211052000587","produk":"Musyarakah"},{"rek":"551052001646","nama":"FENI YULISTIANI","tgl":29,"denda":34035800,"alamat":"DK.KEBANGGAN RT.05/03 DS.SENDANG - TERSONO","pendebetan":"211052003868","produk":"Musyarakah"},{"rek":"551052001718","nama":"TURIPAH","tgl":29,"denda":12016000,"alamat":"DK.LIMBANGAN RT.04/02 DS.REJOSARIBARAT - TERSONO","pendebetan":"211052003860","produk":"Musyarakah"},{"rek":"551052001731","nama":"EKO PRATIKNO","tgl":1,"denda":8961466,"alamat":"DK.SIDOMULYO RT.01/01 DS.SIDOMULYO - LIMPUNG","pendebetan":"211052004030","produk":"Musyarakah"},{"rek":"551052001734","nama":"KHAERUDIN","tgl":7,"denda":40026727,"alamat":"DK. KEBANGGAN RT 05/03 DS. SENDANG TERSONO","pendebetan":"211052001472","produk":"Musyarakah"},{"rek":"551052001756","nama":"SLAMET","tgl":20,"denda":119176233,"alamat":"DK. DURENSARI RT. 02/03 DS. DURENOMBO SUBAH","pendebetan":"211052002455","produk":"Musyarakah"},{"rek":"551052001767","nama":"ANIK ERMAWATI","tgl":6,"denda":21811646,"alamat":"DK.GENTAN RT.02/02 DS.KALANGSONO - BANYUPUTIH","pendebetan":"211052004062","produk":"Musyarakah"},{"rek":"551052001783","nama":"MAIMANAH","tgl":20,"denda":10403992,"alamat":"DK. GETAS RT 01/01 DS. GETAS KEC. BAWANG BATANG","pendebetan":"211052004079","produk":"Musyarakah"},{"rek":"551052001787","nama":"ZAENUDIN","tgl":31,"denda":49543230,"alamat":"DK.DURENSARI RT.02/03 DS.DURENOMBO - SUBAH","pendebetan":"211052003831","produk":"Musyarakah"},{"rek":"551052001806","nama":"RISA NUR RANI","tgl":6,"denda":14922680,"alamat":"DK. BANJARAN RT. 011/003 DS. SEMAMPIR KEC. REBAN KAB. BATANG","pendebetan":"211052004135","produk":"Musyarakah"},{"rek":"551052001809","nama":"RONI FASLAH","tgl":11,"denda":31893007,"alamat":"DK.KRANGKOAN RT.03/02 DS.NGALIYAN - LIMPUNG","pendebetan":"211052004021","produk":"Musyarakah"},{"rek":"551052001817","nama":"MUHSININ","tgl":21,"denda":7370177,"alamat":"DK.DLISEN RT.0101 DS.DLISEN- LIMPUNG","pendebetan":"211052003844","produk":"Musyarakah"},{"rek":"551052001821","nama":"MISWANTO","tgl":26,"denda":5006626,"alamat":"DK. KEBON PETUNG RT. 06/02 DS. REJOSARI BARAT KEC. TERSONO KAB. BATANG","pendebetan":"211052004160","produk":"Musyarakah"},{"rek":"551052001836","nama":"JAWAN","tgl":15,"denda":11007313,"alamat":"DK.BANTARAN RT.018/05 DS.KETANGGAN - GRINGSING","pendebetan":"211052003973","produk":"Musyarakah"},{"rek":"551052001839","nama":"WASDURI","tgl":22,"denda":21165534,"alamat":"DK. KURIPAN RT 05/01 DS. KURIPAN KEC SUBAH BATANG","pendebetan":"211052004245","produk":"Musyarakah"},{"rek":"551052001888","nama":"YULIANIS","tgl":22,"denda":10013374,"alamat":"DS.PLUMBON RT 06 RW 01,LIMPUNG","pendebetan":"211052000532","produk":"Musyarakah"},{"rek":"551052001890","nama":"MUHLISIN","tgl":9,"denda":2024648,"alamat":"DK.SORO GATEN RT.09/04 DS.GONDO - TERSONO","pendebetan":"211052003899","produk":"Musyarakah"},{"rek":"551052001914","nama":"ASTUTI","tgl":24,"denda":15020000,"alamat":"DK. KAUM RT. 02/01 DS. KEBUMEN KEC. TERSONO KAB. BATANG","pendebetan":"211052004321","produk":"Musyarakah"},{"rek":"551052001917","nama":"YUNIKA DEWI PURNAMASARI","tgl":14,"denda":7094682,"alamat":"DK.LIMBANGAN RT.03/02 DS.REJOSARI BARAT - TERSONO","pendebetan":"211052003512","produk":"Musyarakah"},{"rek":"551052001923","nama":"MUFATEHATI","tgl":5,"denda":37374,"alamat":"DK. PEJATEN RT 03/03 DS. REJOSARI BARAT TERSONO","pendebetan":"211052002153","produk":"Musyarakah"},{"rek":"551052001924","nama":"UNTUNG","tgl":9,"denda":76676,"alamat":"DK.MILUWUNG RT.05/03 DS.REJOSARI BARAT - TERSONO","pendebetan":"211052003760","produk":"Musyarakah"},{"rek":"551052001929","nama":"GIYONO","tgl":18,"denda":4000,"alamat":"DK. SUKOREJO RT 04/01 DS. SUKOREJO KEC. LIMPUNG BATANG","pendebetan":"211052004296","produk":"Musyarakah"},{"rek":"551052001930","nama":"KHOLIPAH","tgl":27,"denda":51294,"alamat":"DK. DURENSARI RT 02/03 DS. DURENOMBO KEC. SUBAH BATANG","pendebetan":"211052004334","produk":"Musyarakah"},{"rek":"551052001931","nama":"ZAENAL ABIDIN","tgl":27,"denda":78186,"alamat":"DK.GEDONGAN RT 06/01 DS.REJOSARI BARAT TERSONO","pendebetan":"211052001480","produk":"Musyarakah"},{"rek":"551052001932","nama":"TARSONO","tgl":4,"denda":4000,"alamat":"DK. DURENSARI RT 02/03 DS. DURENOMBO KEC. SUBAH BATANG","pendebetan":"211052004336","produk":"Musyarakah"},{"rek":"551052001934","nama":"ROKHADI","tgl":3,"denda":9374,"alamat":"DK. SENDANG RT. 03/02 DS. SENDANG KEC. TERSONO KAB. BATANG","pendebetan":"211052004100","produk":"Musyarakah"},{"rek":"551052001937","nama":"SUUD","tgl":9,"denda":6626,"alamat":"LIMBANGAN RT 01/02,REJOSARI BARAT.TERSONO","pendebetan":"211052000425","produk":"Musyarakah"},{"rek":"551052001939","nama":"SUPRAYITNO","tgl":13,"denda":20000,"alamat":"LIMBANGAN RT 01/02 REJOSARI BARAT TERSONO","pendebetan":"211052000232","produk":"Musyarakah"},{"rek":"551052001940","nama":"AHMAD NASIRIN","tgl":17,"denda":26626,"alamat":"DS.REJOSARI BART RT 03/01.TERSONO","pendebetan":"211052002700","produk":"Musyarakah"},{"rek":"551052001941","nama":"ARIPIN","tgl":10,"denda":26681,"alamat":"KebonpetungRT/RW. 06/02 Rejosari Barat Tersono Batang","pendebetan":"211052000106","produk":"Musyarakah"},{"rek":"551052001942","nama":"YOSI ELIANI","tgl":20,"denda":8000,"alamat":"DK.KARANGJATI RT.07/03 DS.KEBUMEN - TERSONO","pendebetan":"211052004010","produk":"Musyarakah"},{"rek":"551052001943","nama":"IIS ERNAWATI","tgl":24,"denda":2000,"alamat":"DK.TABELAN RT 04/01 DS.GUMAWANG KEC.PECALUNGAN BATANG","pendebetan":"211052004406","produk":"Musyarakah"},{"rek":"551052001944","nama":"DIAN NOVISANTI","tgl":29,"denda":827513,"alamat":"DK. PEJATEN RT. 02/03 REJOSARI BARAT TERSONO","pendebetan":"211052002256","produk":"Musyarakah"},{"rek":"551052001945","nama":"SRI YUNIARSIH","tgl":4,"denda":10000,"alamat":"DK. KAUM RT 02/01 DS. KEBUMEN KEC. TERSONO BATANG","pendebetan":"211052004278","produk":"Musyarakah"},{"rek":"551052001946","nama":"AGUS SLAMET","tgl":7,"denda":3313,"alamat":"DK. AMPEL WULUNG RT 11/06 DS. SENDANG KEC. TERSONO BATANG","pendebetan":"211052004284","produk":"Musyarakah"},{"rek":"551052001948","nama":"ASIAH","tgl":11,"denda":3313,"alamat":"DK. KWANGSANG RT. 01/05 AMONGROGO LIMPUNG","pendebetan":"211052001800","produk":"Musyarakah"},{"rek":"551052001949","nama":"SARYONO","tgl":11,"denda":3313,"alamat":"DK. LIMBANGAN RT. 05/02 DS. REJOSARI BARAT KEC. TERSONO KAB. BATANG","pendebetan":"211052002561","produk":"Musyarakah"},{"rek":"551052001951","nama":"NURUDIN","tgl":18,"denda":13313,"alamat":"DK. GEDONGAN RT 03/01 REJOSARI BARAT, TERSONO","pendebetan":"211052000458","produk":"Musyarakah"},{"rek":"551052001952","nama":"AHMAD JOHARI","tgl":20,"denda":4000,"alamat":"DK.LIMBANGAN RT.01/02 DS.REJOSARIBARAT - TERSONO","pendebetan":"211052003701","produk":"Musyarakah"},{"rek":"551052001953","nama":"RANI WIJAYANTI","tgl":22,"denda":10000,"alamat":"DK GEDONGAN RT. 06/01 DS. REJOSARI BARAT TERSONO","pendebetan":"211052002270","produk":"Musyarakah"},{"rek":"551052001954","nama":"ILHAM IBNU UBADILAH","tgl":4,"denda":10,"alamat":"SIDONGKAL RT 09/04 DS.GERLANG KEC.BLADO BATANG","pendebetan":"211052004381","produk":"Musyarakah"},{"rek":"551052001956","nama":"AKMALIYAH","tgl":15,"denda":10,"alamat":"DK.TEMPURAN RT.02/02 DS.HARJOWINANGUN BARAT - TERSONO","pendebetan":"211052004049","produk":"Musyarakah"},{"rek":"551052001958","nama":"RIZA WIJAYANTI","tgl":22,"denda":6555,"alamat":"DK. MEDONO RT 05/03 DS. PLUMBON KEC.LIMPUNG BATANG","pendebetan":"211052002066","produk":"Musyarakah"},{"rek":"551052001959","nama":"SRI DATI","tgl":24,"denda":10,"alamat":"DK. PLOSO RT.06/03 DS.PLOSO WANGI - TERSONO","pendebetan":"211052003622","produk":"Musyarakah"}];
+const OLD_NO_TO_REK = {"1":"541052003094","2":"541052002731","3":"541052003087","4":"541052002991","5":"541052002703","6":"541052002896","7":"541052002963","8":"541052002847","9":"541052000544","10":"541052002979","11":"541052003008","13":"541052002753","14":"541052003050","15":"541052003057","16":"541052002706","17":"541052002826","18":"541052002921","19":"541052003098","20":"541052002898","22":"541052002733","23":"541052001721","24":"541052002240","25":"541052002871","26":"541052001384","28":"541052003093","29":"541052003004","30":"541052002980","31":"541052002976","32":"541052002701","33":"541052000929","34":"541052003055","35":"541052003104","37":"541052003106","38":"541052000239","39":"541052000210","40":"541052002936","41":"541052002776","42":"541052002897","43":"541052002455","44":"541052002245","45":"541052000235","46":"541052000889","47":"541052002797","48":"541052000201","49":"541052002585","50":"541052002915","51":"541052002894","52":"541052000621","53":"541052002779","54":"541052002707","55":"541052001549","56":"541052000455","57":"541052001345","58":"541052002587","59":"541052000927","60":"541052002961","61":"541052002716","62":"541052002680","63":"541052003064","64":"541052003074","65":"541052002477","66":"541052002486","67":"541052002751","68":"541052003086","69":"541052002754","70":"541052002983","71":"541052003000","74":"541052002988","75":"541052002434","76":"541052002024","77":"541052001562","79":"541052002868","80":"541052003092","81":"541052002773","82":"541052002994","83":"541052002243","84":"541052002002","85":"541052003083","86":"541052001689","87":"541052002972","88":"541052002926","89":"541052002825","91":"541052002890","92":"541052002494","93":"541052003073","94":"541052003097","96":"541052002971","97":"541052003040","98":"541052001691","99":"541052002796","101":"541052001990","102":"541052003033","103":"541052001586","104":"541052002886","105":"541052002531","107":"541052002756","109":"541052002076","110":"541052002454","111":"541052002270","112":"541052003053","113":"541052003026","115":"541052002669","116":"541052002942","117":"541052003119","119":"541052003069","120":"541052001420","121":"541052003070","122":"541052001398","123":"541052002913","124":"541052002964","125":"541052000548","126":"541052001508","127":"541052001862","128":"541052003019","130":"541052002770","131":"541052002844","132":"541052002874","133":"541052003096","134":"541052002297","135":"541052001824","136":"541052002928","137":"541052002950","138":"541052000588","139":"541052003079","140":"541052002456","141":"541052002867","142":"541052003123","143":"541052002630","144":"541052002631","145":"541052002228","146":"541052003072","147":"541052001104","148":"541052002578","149":"541052002962","150":"541052003056","151":"541052002846","152":"551052000135","153":"551052000142","154":"551052000154","155":"551052000381","156":"551052000416","157":"551052000515","158":"551052000525","159":"551052000573","160":"551052000575","161":"551052000635","162":"551052000729","163":"551052000823","164":"551052000965","165":"551052001018","166":"551052001034","167":"551052001044","168":"551052001089","169":"551052001155","170":"551052001180","171":"551052001216","172":"551052001524","173":"551052001534","174":"551052001646","175":"551052001718","176":"551052001731","177":"551052001734","178":"551052001756","179":"551052001767","180":"551052001783","181":"551052001787","182":"551052001806","183":"551052001809","184":"551052001817","185":"551052001836","186":"551052001839","187":"551052001923","188":"551052001934","189":"551052001944"};
+// end seed data
 
 const STATUS_LABELS = ["Belum Dikunjungi","Sudah Dikunjungi","Tidak Ada di Rumah","Sudah Bayar"];
 const STATUS_BG = ["#e5e7eb","#bbf7d0","#fde68a","#bfdbfe"];
 const STATUS_FG = ["#374151","#065f46","#92400e","#1e40af"];
-const BORDER_COLORS = ["#e2e8f0","#10b981","#f59e0b","#3b82f6"];
 
 const rp = n => "Rp " + Math.round(n).toLocaleString("id-ID");
-const totalDenda = DATA.reduce((a,d)=>a+d.denda,0);
 
-let fbData = {}; // {no: {status, catatan, updatedBy, updatedAt}}
-let currentNo = null;
+let DATA = [];        // array debitur aktif, dari master_data
+let fbData = {};      // {rek: {status, catatan, updatedAt}}
+let currentRek = null;
 let activeTab = "daftar";
 let filterProduk = "Semua";
 let filterStatus = "Semua";
 
-// Listen Firebase
-const kunjunganRef = ref(db, "kunjungan_murabahah");
-onValue(kunjunganRef, (snap) => {
-  fbData = snap.val() || {};
-  document.getElementById("sync-status").textContent = "Terhubung · Realtime";
-  renderList();
-  renderRekap();
-  if (currentNo) updateModalStatus();
-});
+// ====== PARSER CSV (format Sisminbankol, delimiter ';', field dikutip) ======
+function parseCSVLine(line, delim=";"){
+  const result = [];
+  let cur = "", inQuotes = false;
+  for (let i=0;i<line.length;i++){
+    const c = line[i];
+    if (inQuotes){
+      if (c === '"'){
+        if (line[i+1] === '"'){ cur+='"'; i++; }
+        else inQuotes = false;
+      } else cur += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === delim){ result.push(cur); cur=""; }
+      else cur += c;
+    }
+  }
+  result.push(cur);
+  return result;
+}
 
-window.switchTab = (tab) => {
-  activeTab = tab;
-  document.getElementById("tab-daftar").style.display = tab==="daftar"?"block":"none";
-  document.getElementById("tab-rekap").style.display = tab==="rekap"?"block":"none";
-  document.querySelectorAll(".tab").forEach((t,i)=>{
-    t.classList.toggle("active", (i===0&&tab==="daftar")||(i===1&&tab==="rekap"));
+function buildMasterFromCSV(text){
+  const lines = text.split(/\r\n|\n|\r/).filter(l=>l.trim().length>0);
+  const out = {};
+  let total=0, murabahah=0, musyarakah=0, dilewati=0;
+  lines.forEach(line=>{
+    const r = parseCSVLine(line);
+    if (r.length < 18) { dilewati++; return; }
+    const produkRaw = (r[4]||"").toUpperCase();
+    let produk = null;
+    if (produkRaw.includes("MURABAHAH")) produk = "Murabahah";
+    else if (produkRaw.includes("MUSYAROKAH") || produkRaw.includes("MUSYARAKAH")) produk = "Musyarakah";
+    if (!produk) { return; }
+    const denda = (parseFloat(r[16])||0) + (parseFloat(r[17])||0);
+    if (denda <= 0) return;
+    const rek = (r[0]||"").trim();
+    if (!rek) return;
+    const tglStr = (r[8]||"").trim();
+    const tgl = parseInt((tglStr.split("-")[0]||"0"),10) || 0;
+    out[rek] = {
+      rek,
+      noRekening: rek,
+      nama: (r[1]||"").trim(),
+      tgl,
+      denda: Math.round(denda),
+      alamat: (r[15]||"").trim(),
+      pendebetan: (r[5]||"").trim(),
+      produk
+    };
+    total++;
+    if (produk==="Murabahah") murabahah++; else musyarakah++;
   });
-  if(tab==="rekap") renderRekap();
+  return { out, total, murabahah, musyarakah };
+}
+
+window.handleCSVUpload = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const text = e.target.result;
+      const { out, total, murabahah, musyarakah } = buildMasterFromCSV(text);
+      if (total === 0){
+        showToast("⚠️ Tidak ada data valid ditemukan di file ini");
+        return;
+      }
+      const ok = confirm(`File ditemukan ${total} debitur menunggak (Murabahah: ${murabahah}, Musyarakah: ${musyarakah}).\n\nGanti data lama dengan data ini? Status kunjungan yang sudah tercatat tetap tersimpan untuk debitur yang sama.`);
+      if (!ok) return;
+      showToast("⏳ Menyimpan data baru...");
+      await set(ref(db,"master_data"), out);
+      await set(ref(db,"master_data_meta"), { updatedAt: Date.now(), total, murabahah, musyarakah });
+      showToast("✅ Data berhasil diperbarui!");
+    } catch(err){
+      console.error(err);
+      showToast("❌ Gagal membaca file: " + err.message);
+    } finally {
+      event.target.value = "";
+    }
+  };
+  reader.readAsText(file, "UTF-8");
 };
 
-// Filter buttons
+// ====== MIGRASI SATU KALI: kunjungan_murabahah (key: no lama) -> kunjungan_v2 (key: no rekening) ======
+async function migrateOldKunjunganIfNeeded(){
+  try{
+    const flagSnap = await get(ref(db,"meta/migrated_v2"));
+    if (flagSnap.exists() && flagSnap.val() === true) return;
+    const oldSnap = await get(ref(db,"kunjungan_murabahah"));
+    const oldData = oldSnap.val() || {};
+    const updates = {};
+    Object.keys(oldData).forEach(oldNo=>{
+      const rek = OLD_NO_TO_REK[oldNo];
+      if (!rek) return;
+      updates[`kunjungan_v2/${rek}`] = oldData[oldNo];
+    });
+    if (Object.keys(updates).length){
+      await update(ref(db), updates);
+    }
+    await set(ref(db,"meta/migrated_v2"), true);
+  } catch(err){
+    console.error("Migrasi gagal:", err);
+  }
+}
+
+// ====== FIREBASE LISTENERS ======
+async function initMasterData(){
+  const snap = await get(ref(db,"master_data"));
+  if (!snap.exists() || !snap.val() || Object.keys(snap.val()).length===0){
+    // Belum ada data di Firebase -> seed dengan data bawaan (hasil CSV terakhir yang di-embed)
+    const seedObj = {};
+    SEED_DATA.forEach(d=>{ seedObj[d.rek] = d; });
+    await set(ref(db,"master_data"), seedObj);
+    await set(ref(db,"master_data_meta"), { updatedAt: Date.now(), total: SEED_DATA.length, seeded:true });
+  }
+}
+
 const buildFilters = () => {
   const row = document.getElementById("filter-row");
   const options = ["Semua",...STATUS_LABELS];
@@ -385,7 +316,6 @@ const buildProdukFilters = () => {
 };
 
 window.setProdukFilter = (p) => { filterProduk=p; buildProdukFilters(); renderList(); };
-
 window.setFilter = (s) => { filterStatus=s; buildFilters(); renderList(); };
 
 const renderList = () => {
@@ -393,27 +323,28 @@ const renderList = () => {
   const filtered = DATA.filter(d=>{
     const matchQ = !q||d.nama.toLowerCase().includes(q)||d.noRekening.includes(q)||d.alamat.toLowerCase().includes(q);
     const matchProduk = filterProduk==="Semua"||d.produk===filterProduk;
-    const s = (fbData[d.no]?.status)||0;
+    const s = (fbData[d.rek]?.status)||0;
     const label = STATUS_LABELS[s];
     const matchS = filterStatus==="Semua"||label===filterStatus;
     return matchQ&&matchProduk&&matchS;
   });
   document.getElementById("result-count").textContent = `${filtered.length} debitur ditemukan`;
   document.getElementById("list-container").innerHTML = filtered.map(d=>{
-    const s = (fbData[d.no]?.status)||0;
+    const s = (fbData[d.rek]?.status)||0;
     const produkClass = d.produk==="Murabahah"?"produk-mura":"produk-mush";
+    const ekor = d.noRekening.slice(-4);
     return `
-    <div class="debitur-card status-${s}" onclick="openModal(${d.no})">
+    <div class="debitur-card status-${s}" onclick="openModal('${d.rek}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div style="flex:1">
           <div style="display:flex;align-items:center;gap:8px">
-            <span class="nomor-badge">#${d.no}</span>
+            <span class="nomor-badge">#${ekor}</span>
             <span style="font-weight:700;font-size:14px">${d.nama}</span>
             <span class="produk-badge ${produkClass}">${d.produk}</span>
           </div>
           <div style="font-size:11px;color:#94a3b8;margin-top:3px">${d.noRekening}</div>
           <div style="font-size:12.5px;color:#334155;margin-top:4px;line-height:1.45;font-weight:500">📍 ${d.alamat}</div>
-          ${fbData[d.no]?.catatan?`<div style="font-size:11px;color:#2563eb;margin-top:4px">📝 ${fbData[d.no].catatan}</div>`:""}
+          ${fbData[d.rek]?.catatan?`<div style="font-size:11px;color:#2563eb;margin-top:4px">📝 ${fbData[d.rek].catatan}</div>`:""}
         </div>
         <div style="text-align:right;margin-left:10px;flex-shrink:0">
           <div style="color:#dc2626;font-weight:700;font-size:13px">${rp(d.denda)}</div>
@@ -426,34 +357,35 @@ const renderList = () => {
 };
 
 const renderRekap = () => {
+  document.getElementById("r-total").textContent = DATA.length;
   const byProduk = {};
   ["Murabahah","Musyarakah"].forEach(p => {
     const subset = DATA.filter(d=>d.produk===p);
     const counts = [0,0,0,0];
-    subset.forEach(d=>{ const s=(fbData[d.no]?.status)||0; counts[s]++; });
-    const sudahBayar = subset.filter(d=>(fbData[d.no]?.status)===3).reduce((a,d)=>a+d.denda,0);
+    subset.forEach(d=>{ const s=(fbData[d.rek]?.status)||0; counts[s]++; });
+    const sudahBayar = subset.filter(d=>(fbData[d.rek]?.status)===3).reduce((a,d)=>a+d.denda,0);
     const totalDenda = subset.reduce((a,d)=>a+d.denda,0);
-    byProduk[p] = {counts, sudahBayar, totalDenda};
+    byProduk[p] = {counts, sudahBayar, totalDenda, jumlah:subset.length};
   });
-  
+
   const totalMura = byProduk.Murabahah.totalDenda;
   const totalMush = byProduk.Musyarakah.totalDenda;
   const terkumpulMura = byProduk.Murabahah.sudahBayar;
   const terkumpulMush = byProduk.Musyarakah.sudahBayar;
-  
+
   document.getElementById("r-denda").textContent = rp(totalMura+totalMush);
   document.getElementById("r-terkumpul").textContent = rp(terkumpulMura+terkumpulMush);
-  
+
   let html = "";
   ["Murabahah","Musyarakah"].forEach(p => {
-    const {counts, totalDenda} = byProduk[p];
+    const {counts, jumlah} = byProduk[p];
     html += `<div style="margin-bottom:16px">
       <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">${p}</div>`;
     STATUS_LABELS.forEach((s,i)=>{
       html += `<div style="display:flex;align-items:center;margin-bottom:8px">
         <div style="flex:1">
           <div style="font-size:12px;font-weight:600">${s}</div>
-          <div class="progress-bar" style="background:${STATUS_BG[i]};width:${Math.round(counts[i]/DATA.filter(d=>d.produk===p).length*100)||0}%"></div>
+          <div class="progress-bar" style="background:${STATUS_BG[i]};width:${Math.round(counts[i]/(jumlah||1)*100)||0}%"></div>
         </div>
         <div style="font-weight:700;font-size:16px;margin-left:12px;color:${STATUS_FG[i]};min-width:32px;text-align:right">${counts[i]}</div>
       </div>`;
@@ -463,49 +395,50 @@ const renderRekap = () => {
   document.getElementById("rekap-status").innerHTML = html;
 };
 
-window.openModal = (no) => {
-  currentNo = no;
-  const d = DATA.find(x=>x.no===no);
+window.openModal = (rek) => {
+  currentRek = rek;
+  const d = DATA.find(x=>x.rek===rek);
+  if (!d) return;
   document.getElementById("m-nama").textContent = d.nama;
   document.getElementById("m-rek").textContent = d.noRekening;
   document.getElementById("m-denda").textContent = rp(d.denda);
   document.getElementById("m-alamat").textContent = d.alamat;
   document.getElementById("m-tgl").textContent = d.tgl;
   document.getElementById("m-pendebetan").textContent = d.pendebetan;
-  document.getElementById("m-catatan").value = fbData[no]?.catatan||"";
+  document.getElementById("m-catatan").value = fbData[rek]?.catatan||"";
   updateModalStatus();
-  const upd = fbData[no]?.updatedAt;
+  const upd = fbData[rek]?.updatedAt;
   document.getElementById("m-updated").textContent = upd ? `Update terakhir: ${new Date(upd).toLocaleString("id-ID")}` : "";
   document.getElementById("modal").classList.add("open");
 };
 
 const updateModalStatus = () => {
-  const s = (fbData[currentNo]?.status)||0;
+  const s = (fbData[currentRek]?.status)||0;
   document.getElementById("status-grid").innerHTML = STATUS_LABELS.map((label,i)=>`
     <button class="status-btn${s===i?" active-"+i:""}" onclick="setStatusModal(${i})">${label}</button>
   `).join("");
 };
 
 window.setStatusModal = (val) => {
-  if(!fbData[currentNo]) fbData[currentNo]={};
-  fbData[currentNo].status = val;
+  if(!fbData[currentRek]) fbData[currentRek]={};
+  fbData[currentRek].status = val;
   updateModalStatus();
 };
 
 window.closeModal = (e) => {
-  if(e.target.id==="modal") { currentNo=null; document.getElementById("modal").classList.remove("open"); }
+  if(e.target.id==="modal") { currentRek=null; document.getElementById("modal").classList.remove("open"); }
 };
 
 window.saveAndClose = async () => {
-  const s = (fbData[currentNo]?.status)||0;
+  const s = (fbData[currentRek]?.status)||0;
   const catatan = document.getElementById("m-catatan").value;
-  await update(ref(db,`kunjungan_murabahah/${currentNo}`),{
+  await update(ref(db,`kunjungan_v2/${currentRek}`),{
     status: s,
     catatan: catatan,
     updatedAt: Date.now(),
   });
   showToast("✅ Tersimpan!");
-  currentNo=null;
+  currentRek=null;
   document.getElementById("modal").classList.remove("open");
 };
 
@@ -513,15 +446,51 @@ const showToast = (msg) => {
   const t = document.getElementById("toast");
   t.textContent = msg;
   t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"),2500);
+  setTimeout(()=>t.classList.remove("show"),3000);
 };
 
-// Init
+window.switchTab = (tab) => {
+  activeTab = tab;
+  document.getElementById("tab-daftar").style.display = tab==="daftar"?"block":"none";
+  document.getElementById("tab-rekap").style.display = tab==="rekap"?"block":"none";
+  document.querySelectorAll(".tab").forEach((t,i)=>{
+    t.classList.toggle("active", (i===0&&tab==="daftar")||(i===1&&tab==="rekap"));
+  });
+  if(tab==="rekap") renderRekap();
+};
+
+// ====== INIT ======
 buildProdukFilters();
 buildFilters();
-renderList();
-renderRekap();
 document.getElementById("search").addEventListener("input", renderList);
+
+(async () => {
+  await migrateOldKunjunganIfNeeded();
+  await initMasterData();
+
+  onValue(ref(db,"master_data"), (snap) => {
+    const obj = snap.val() || {};
+    DATA = Object.values(obj);
+    renderList();
+    if (activeTab==="rekap") renderRekap();
+  });
+
+  onValue(ref(db,"master_data_meta"), (snap) => {
+    const meta = snap.val();
+    if (meta && meta.updatedAt){
+      document.getElementById("update-info").textContent =
+        `Data per: ${new Date(meta.updatedAt).toLocaleString("id-ID")} · ${meta.total||""} debitur`;
+    }
+  });
+
+  onValue(ref(db,"kunjungan_v2"), (snap) => {
+    fbData = snap.val() || {};
+    document.getElementById("sync-status").textContent = "Terhubung · Realtime";
+    renderList();
+    if (activeTab==="rekap") renderRekap();
+    if (currentRek) updateModalStatus();
+  });
+})();
 </script>
 </body>
 </html>
