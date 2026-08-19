@@ -175,7 +175,7 @@ const STATUS_FG = ["#374151","#065f46","#92400e","#1e40af"];
 
 const rp = n => "Rp " + Math.round(n).toLocaleString("id-ID");
 
-let DATA = [];        // array debitur aktif, dari master_data
+let DATA = SEED_DATA.map(d => ({...d, noRekening: d.rek})); // array debitur aktif, tampil dulu dari data bawaan sambil menunggu Firebase
 let fbData = {};      // {rek: {status, catatan, updatedAt}}
 let currentRek = null;
 let activeTab = "daftar";
@@ -293,7 +293,7 @@ async function initMasterData(){
   if (!snap.exists() || !snap.val() || Object.keys(snap.val()).length===0){
     // Belum ada data di Firebase -> seed dengan data bawaan (hasil CSV terakhir yang di-embed)
     const seedObj = {};
-    SEED_DATA.forEach(d=>{ seedObj[d.rek] = d; });
+    SEED_DATA.forEach(d=>{ seedObj[d.rek] = {...d, noRekening: d.rek}; });
     await set(ref(db,"master_data"), seedObj);
     await set(ref(db,"master_data_meta"), { updatedAt: Date.now(), total: SEED_DATA.length, seeded:true });
   }
@@ -463,33 +463,58 @@ window.switchTab = (tab) => {
 buildProdukFilters();
 buildFilters();
 document.getElementById("search").addEventListener("input", renderList);
+renderList();
+renderRekap();
 
-(async () => {
-  await migrateOldKunjunganIfNeeded();
-  await initMasterData();
+// Pasang listener Firebase LANGSUNG (tidak menunggu proses lain) supaya status
+// koneksi & data selalu jalan walaupun proses migrasi/seed di bawah gagal/lambat.
+let gotMasterOnce = false;
+let gotKunjunganOnce = false;
 
-  onValue(ref(db,"master_data"), (snap) => {
-    const obj = snap.val() || {};
+const connectionTimeout = setTimeout(()=>{
+  if (!gotMasterOnce || !gotKunjunganOnce){
+    document.getElementById("sync-status").textContent = "⚠️ Gagal terhubung ke server, cek koneksi internet";
+  }
+}, 8000);
+
+onValue(ref(db,"master_data"), (snap) => {
+  gotMasterOnce = true;
+  const obj = snap.val() || {};
+  if (Object.keys(obj).length > 0){
     DATA = Object.values(obj);
-    renderList();
-    if (activeTab==="rekap") renderRekap();
-  });
+  }
+  renderList();
+  if (activeTab==="rekap") renderRekap();
+}, (err) => {
+  console.error("master_data error:", err);
+  document.getElementById("sync-status").textContent = "⚠️ Tidak bisa baca data (cek aturan Firebase)";
+});
 
-  onValue(ref(db,"master_data_meta"), (snap) => {
-    const meta = snap.val();
-    if (meta && meta.updatedAt){
-      document.getElementById("update-info").textContent =
-        `Data per: ${new Date(meta.updatedAt).toLocaleString("id-ID")} · ${meta.total||""} debitur`;
-    }
-  });
+onValue(ref(db,"master_data_meta"), (snap) => {
+  const meta = snap.val();
+  if (meta && meta.updatedAt){
+    document.getElementById("update-info").textContent =
+      `Data per: ${new Date(meta.updatedAt).toLocaleString("id-ID")} · ${meta.total||""} debitur`;
+  }
+});
 
-  onValue(ref(db,"kunjungan_v2"), (snap) => {
-    fbData = snap.val() || {};
-    document.getElementById("sync-status").textContent = "Terhubung · Realtime";
-    renderList();
-    if (activeTab==="rekap") renderRekap();
-    if (currentRek) updateModalStatus();
-  });
+onValue(ref(db,"kunjungan_v2"), (snap) => {
+  gotKunjunganOnce = true;
+  clearTimeout(connectionTimeout);
+  fbData = snap.val() || {};
+  document.getElementById("sync-status").textContent = "Terhubung · Realtime";
+  renderList();
+  if (activeTab==="rekap") renderRekap();
+  if (currentRek) updateModalStatus();
+}, (err) => {
+  console.error("kunjungan_v2 error:", err);
+  document.getElementById("sync-status").textContent = "⚠️ Tidak bisa terhubung (cek aturan Firebase)";
+});
+
+// Migrasi & seeding data bawaan berjalan di belakang layar, tidak menghalangi tampilan di atas.
+(async () => {
+  try { await migrateOldKunjunganIfNeeded(); } catch(e){ console.error(e); }
+  try { await initMasterData(); } catch(e){ console.error(e); }
 })();
 </script>
 </body>
