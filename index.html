@@ -309,8 +309,8 @@
     <input id="search" type="text" placeholder="Cari nasabah..." autocomplete="off">
   </div>
   <div class="upload-row">
-    <label class="upload-btn" for="csvFile">⭱ Upload CSV terbaru</label>
-    <input id="csvFile" type="file" accept=".csv,.txt" style="display:none">
+    <label class="upload-btn" for="csvFile">⭱ Upload CSV/XLS terbaru</label>
+    <input id="csvFile" type="file" accept=".csv,.txt,.xls,.xlsx,.xml" style="display:none">
     <button id="resetBtn" class="reset-btn" type="button">Reset ke data bawaan</button>
     <span id="uploadStatus" class="upload-status"></span>
   </div>
@@ -588,6 +588,100 @@ function toDate(v){
   return (v || '').toString().trim().split(' ')[0];
 }
 
+/* ==== Import data dari Excel XML (SpreadsheetML), format laporan "TAGIHAN MITRA USAHA" .XLS ==== */
+
+function isExcelXml(text){
+  const head = text.slice(0, 1000);
+  return /<\?xml/i.test(head) && /schemas-microsoft-com:office:spreadsheet/i.test(text.slice(0, 3000));
+}
+
+function decodeXmlEntities(s){
+  return (s || '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (m, d) => String.fromCharCode(parseInt(d, 10)))
+    .replace(/&amp;/g, '&');
+}
+
+function xlsXmlToRecords(text){
+  const records = [];
+  let cabang = '';
+  const kantorMatch = text.match(/Keseluruhan Kantor\s*:\s*\d+\s*\/\s*([^<]+?)(?:<|\s{2,})/i);
+  if(kantorMatch) cabang = decodeXmlEntities(kantorMatch[1]).trim();
+
+  let currentProduk = '';
+  let currentKodeProduk = '';
+
+  const rowRe = /<Row[^>]*>([\s\S]*?)<\/Row>/g;
+  const dataRe = /<Data[^>]*>([\s\S]*?)<\/Data>/g;
+  let rowMatch;
+  while((rowMatch = rowRe.exec(text)) !== null){
+    const rowContent = rowMatch[1];
+    const cells = [];
+    let dm;
+    dataRe.lastIndex = 0;
+    while((dm = dataRe.exec(rowContent)) !== null){
+      cells.push(decodeXmlEntities(dm[1]).trim());
+    }
+    if(cells.length === 0) continue;
+
+    const sectionMatch = cells[0].match(/^(\d{3})\s*\/\s*(.+)$/);
+    if(sectionMatch){
+      currentKodeProduk = sectionMatch[1];
+      currentProduk = sectionMatch[2].trim();
+      continue;
+    }
+    if(cells[0].indexOf('T O T A L') !== -1) continue;
+    if(!/^\d+$/.test(cells[0])) continue; // baris bukan data rekening (header, dsb)
+    if(cells.length < 17) continue;
+
+    const no_rekening = cells[0];
+    const nama = cells[1];
+    const plafon = toNum(cells[2]);
+    const sisa_pokok_akhir = toNum(cells[4]);
+    const angsuran_bulanan = toNum(cells[9]);
+    const pembayaran_pokok = toNum(cells[10]);
+    const pembayaran_margin = toNum(cells[11]);
+    const tunggakan_akhir_pokok = toNum(cells[12]);
+    const tunggakan_akhir_margin = toNum(cells[13]);
+    const tgl_jatuh_tempo = toDate(cells[15]);
+    const ao = cells[16];
+    const kode_tipe = currentKodeProduk.startsWith('1') ? '1' : '5';
+
+    records.push({
+      no_rekening,
+      nama,
+      plafon,
+      saldo: toNum(cells[3]),
+      produk: currentProduk,
+      no_rekening_terkait: '',
+      nama_terkait: '',
+      no_akad: '',
+      tgl_mulai: '',
+      tgl_jatuh_tempo,
+      kode_tipe,
+      margin_rate: 0,
+      ao,
+      angsuran_bulanan,
+      alamat: '',
+      sisa_pokok: sisa_pokok_akhir,
+      pembayaran_pokok,
+      pembayaran_margin,
+      sisa_pokok_akhir,
+      sisa_total_akhir: tunggakan_akhir_pokok + tunggakan_akhir_margin,
+      cabang,
+      kode_ao: '',
+      kode_produk: currentKodeProduk,
+      saldo_pokok_net: tunggakan_akhir_pokok,
+      saldo_total_net: tunggakan_akhir_pokok + tunggakan_akhir_margin,
+      sudah_angsur: (pembayaran_pokok > 0 || pembayaran_margin > 0)
+    });
+  }
+  return records;
+}
+
 function csvToRecords(text){
   const lines = text.split(/\r\n|\n|\r/).filter(l => l.trim().length > 0);
   const records = [];
@@ -641,7 +735,7 @@ csvFileInput.addEventListener('change', () => {
   reader.onload = () => {
     try{
       const text = reader.result;
-      const records = csvToRecords(text);
+      const records = isExcelXml(text) ? xlsXmlToRecords(text) : csvToRecords(text);
       if(records.length === 0){
         throw new Error('Tidak ada baris valid yang terbaca dari file ini.');
       }
