@@ -291,6 +291,108 @@
   }
   .upload-status.err{color:#f3c6c6;}
   .upload-status.ok{color:#c9ecd2;}
+
+  .action-row{
+    display:flex; align-items:center; gap:8px;
+    margin-top:8px; flex-wrap:wrap;
+  }
+  .action-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:0.75rem; font-weight:600;
+    padding:7px 12px; border-radius:999px;
+    border:1px solid rgba(243,239,228,0.35);
+    background:rgba(243,239,228,0.08);
+    color:#f3efe4;
+    cursor:pointer;
+    user-select:none;
+  }
+  .action-btn:hover{background:rgba(243,239,228,0.18);}
+
+  /* Compare sheet */
+  .compare-upload{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    margin-bottom:8px;
+  }
+  .compare-upload label.file-lbl{
+    display:block; font-size:0.68rem; color:var(--ink-soft); margin-bottom:4px;
+    text-transform:uppercase; letter-spacing:0.04em;
+  }
+  .compare-upload input[type=file]{
+    width:100%; font-size:0.78rem;
+  }
+  .compare-filename{font-size:0.72rem; color:var(--ink-soft); margin-top:4px;}
+  .compare-run-btn{
+    width:100%;
+    padding:11px;
+    border-radius:999px;
+    border:none;
+    background:var(--brand);
+    color:#fff;
+    font-weight:700;
+    font-size:0.88rem;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .compare-run-btn:disabled{opacity:0.5; cursor:not-allowed;}
+  .compare-summary{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin:12px 0;
+  }
+  .compare-stat{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px;
+    text-align:center;
+  }
+  .compare-stat b{display:block; font-size:1.2rem;}
+  .compare-stat span{font-size:0.68rem; color:var(--ink-soft);}
+  .compare-stat.down b{color:#b5482a;}
+  .compare-stat.up b{color:var(--paid-text);}
+  .compare-group-title{
+    font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--ink-soft); margin:14px 2px 6px;
+  }
+  .compare-item{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-left:4px solid var(--unpaid-line);
+    border-radius:8px;
+    padding:9px 12px;
+    margin-bottom:6px;
+    font-size:0.85rem;
+  }
+  .compare-item.down{border-left-color:#c24a30;}
+  .compare-item.up{border-left-color:var(--paid-line);}
+  .compare-item .nm{font-weight:700;}
+  .compare-item .rek{font-size:0.7rem; color:var(--ink-soft);}
+  .compare-empty{font-size:0.8rem; color:var(--ink-soft); padding:4px 2px 10px;}
+  .compare-status{font-size:0.78rem; color:var(--ink-soft); margin-top:6px;}
+  .compare-status.err{color:#c24a30;}
+
+  /* Print / export PDF */
+  #printArea{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    #printArea, #printArea *{visibility:visible;}
+    #printArea{
+      display:block !important;
+      position:absolute; left:0; top:0; width:100%;
+      padding:0; margin:0; background:#fff; color:#000;
+    }
+    #printArea h1{font-size:14pt; margin:0 0 2px;}
+    #printArea .print-sub{font-size:9pt; color:#333; margin:0 0 10px;}
+    #printArea table{width:100%; border-collapse:collapse; font-size:8pt;}
+    #printArea th, #printArea td{border:1px solid #999; padding:3px 5px; text-align:left;}
+    #printArea th{background:#eee;}
+    #printArea td.num{text-align:right; white-space:nowrap;}
+    #printArea tr.paid td{background:#f0f7f1;}
+  }
 </style>
 
   <meta name="theme-color" content="#0f4d43">
@@ -318,7 +420,17 @@
     <button id="resetBtn" class="reset-btn" type="button">Reset ke data bawaan</button>
     <span id="uploadStatus" class="upload-status"></span>
   </div>
+  <div class="action-row">
+    <button id="compareBtn" class="action-btn" type="button">⇄ Bandingkan 2 file</button>
+    <button id="exportPdfBtn" class="action-btn" type="button">🖨 Export PDF</button>
+  </div>
 </header>
+
+<div class="overlay" id="compareOverlay">
+  <div class="sheet" id="compareSheet"></div>
+</div>
+
+<div id="printArea"></div>
 
 <div class="stats">
   <div class="stat active" id="cardTotal" data-status="all"><b id="statTotal">0</b><span>Total nasabah</span></div>
@@ -440,13 +552,18 @@ function matches(d, q){
          d.ao.toLowerCase().includes(q);
 }
 
-function render(){
+function getFilteredRows(){
   const q = searchEl.value.trim();
   let rows = DATA.filter(d => matches(d, q));
   if(activeProduk !== 'Semua') rows = rows.filter(d => d.produk === activeProduk);
   if(activeAO !== 'Semua') rows = rows.filter(d => (d.ao || '').trim() === activeAO);
   if(activeStatus === 'paid') rows = rows.filter(d => d.sudah_angsur);
   if(activeStatus === 'unpaid') rows = rows.filter(d => !d.sudah_angsur);
+  return rows;
+}
+
+function render(){
+  const rows = getFilteredRows();
 
   const statusLabel = activeStatus === 'paid' ? ' · sudah angsur' : activeStatus === 'unpaid' ? ' · belum angsur' : '';
   const aoLabel = activeAO !== 'Semua' ? ` · AO: ${activeAO}` : '';
@@ -790,6 +907,203 @@ resetBtn.addEventListener('click', () => {
   render();
   uploadStatusEl.textContent = 'Data direset ke bawaan.';
   uploadStatusEl.className = 'upload-status ok';
+});
+
+/* ==== Bandingkan 2 file (data lama vs data baru) ==== */
+
+function fileToRecords(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const text = reader.result;
+        const records = isExcelXml(text) ? xlsXmlToRecords(text) : csvToRecords(text);
+        if(records.length === 0){
+          reject(new Error('Tidak ada baris valid yang terbaca dari file ini.'));
+          return;
+        }
+        resolve(records);
+      }catch(err){ reject(err); }
+    };
+    reader.onerror = () => reject(new Error('Gagal membaca file.'));
+    reader.readAsText(file, 'utf-8');
+  });
+}
+
+const compareOverlay = document.getElementById('compareOverlay');
+const compareSheet = document.getElementById('compareSheet');
+const compareBtn = document.getElementById('compareBtn');
+
+function renderCompareForm(){
+  compareSheet.innerHTML = `
+    <div class="sheet-head">
+      <button class="close" id="compareCloseBtn">✕</button>
+      <h2>Bandingkan 2 file</h2>
+      <div class="sub">Cari nasabah yang berubah status tagihan antar dua periode</div>
+    </div>
+    <div class="section">
+      <div class="compare-upload">
+        <label class="file-lbl" for="fileLama">Data lama (periode sebelumnya)</label>
+        <input id="fileLama" type="file" accept=".csv,.txt,.xls,.xlsx,.xml">
+        <div class="compare-filename" id="fileLamaName"></div>
+      </div>
+      <div class="compare-upload">
+        <label class="file-lbl" for="fileBaru">Data baru (periode terkini)</label>
+        <input id="fileBaru" type="file" accept=".csv,.txt,.xls,.xlsx,.xml">
+        <div class="compare-filename" id="fileBaruName"></div>
+      </div>
+      <button id="runCompareBtn" class="compare-run-btn" type="button">Bandingkan</button>
+      <div class="compare-status" id="compareStatus"></div>
+    </div>
+    <div id="compareResult"></div>
+  `;
+  document.getElementById('compareCloseBtn').addEventListener('click', closeCompare);
+  const fileLamaInput = document.getElementById('fileLama');
+  const fileBaruInput = document.getElementById('fileBaru');
+  fileLamaInput.addEventListener('change', () => {
+    document.getElementById('fileLamaName').textContent = fileLamaInput.files[0] ? fileLamaInput.files[0].name : '';
+  });
+  fileBaruInput.addEventListener('change', () => {
+    document.getElementById('fileBaruName').textContent = fileBaruInput.files[0] ? fileBaruInput.files[0].name : '';
+  });
+  document.getElementById('runCompareBtn').addEventListener('click', runCompare);
+}
+
+function openCompare(){
+  renderCompareForm();
+  compareOverlay.classList.add('show');
+}
+function closeCompare(){
+  compareOverlay.classList.remove('show');
+}
+compareBtn.addEventListener('click', openCompare);
+compareOverlay.addEventListener('click', e => { if(e.target === compareOverlay) closeCompare(); });
+
+async function runCompare(){
+  const fileLama = document.getElementById('fileLama').files[0];
+  const fileBaru = document.getElementById('fileBaru').files[0];
+  const statusEl = document.getElementById('compareStatus');
+  const runBtn = document.getElementById('runCompareBtn');
+  if(!fileLama || !fileBaru){
+    statusEl.textContent = 'Pilih kedua file (data lama dan data baru) terlebih dahulu.';
+    statusEl.className = 'compare-status err';
+    return;
+  }
+  runBtn.disabled = true;
+  statusEl.textContent = 'Membaca dan membandingkan data...';
+  statusEl.className = 'compare-status';
+  try{
+    const [recLama, recBaru] = await Promise.all([fileToRecords(fileLama), fileToRecords(fileBaru)]);
+    const mapLama = new Map(recLama.map(d => [d.no_rekening, d]));
+    const mapBaru = new Map(recBaru.map(d => [d.no_rekening, d]));
+
+    const turunJadiBelum = []; // sebelumnya tertagih (sudah angsur), sekarang belum
+    const naikJadiSudah = [];  // sebelumnya belum, sekarang sudah tertagih
+    const hanyaDiBaru = [];    // nasabah baru, tidak ada di data lama
+    const hanyaDiLama = [];    // ada di data lama, tidak muncul lagi di data baru (kemungkinan lunas/tutup)
+
+    for(const [rek, dLama] of mapLama){
+      const dBaru = mapBaru.get(rek);
+      if(!dBaru){
+        hanyaDiLama.push(dLama);
+        continue;
+      }
+      if(dLama.sudah_angsur && !dBaru.sudah_angsur) turunJadiBelum.push(dBaru);
+      if(!dLama.sudah_angsur && dBaru.sudah_angsur) naikJadiSudah.push(dBaru);
+    }
+    for(const [rek, dBaru] of mapBaru){
+      if(!mapLama.has(rek)) hanyaDiBaru.push(dBaru);
+    }
+
+    renderCompareResult({turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama, fileLama, fileBaru});
+    statusEl.textContent = `✓ Selesai · ${recLama.length} data lama vs ${recBaru.length} data baru`;
+    statusEl.className = 'compare-status ok';
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = 'Gagal membandingkan: ' + err.message;
+    statusEl.className = 'compare-status err';
+  }
+  runBtn.disabled = false;
+}
+
+function compareItemHtml(d, cls){
+  return `<div class="compare-item ${cls}">
+    <div class="nm">${d.nama}</div>
+    <div class="rek nums">${d.no_rekening} &middot; ${shortProduk(d.produk)}${d.ao ? ' &middot; AO: '+d.ao : ''}</div>
+  </div>`;
+}
+
+function compareGroupHtml(title, list, cls){
+  if(list.length === 0){
+    return `<div class="compare-group-title">${title} (0)</div><div class="compare-empty">Tidak ada nasabah dalam kategori ini.</div>`;
+  }
+  return `<div class="compare-group-title">${title} (${list.length})</div>` +
+    list.map(d => compareItemHtml(d, cls)).join('');
+}
+
+function renderCompareResult({turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama}){
+  const resultEl = document.getElementById('compareResult');
+  resultEl.innerHTML = `
+    <div class="section">
+      <div class="compare-summary">
+        <div class="compare-stat down"><b>${turunJadiBelum.length}</b><span>Dulu tertagih, kini belum</span></div>
+        <div class="compare-stat up"><b>${naikJadiSudah.length}</b><span>Dulu belum, kini tertagih</span></div>
+      </div>
+      ${compareGroupHtml('Perlu perhatian: dulu tertagih, sekarang belum angsur', turunJadiBelum, 'down')}
+      ${compareGroupHtml('Progres baik: dulu belum, sekarang sudah angsur', naikJadiSudah, 'up')}
+      ${compareGroupHtml('Nasabah baru (hanya ada di data baru)', hanyaDiBaru, '')}
+      ${compareGroupHtml('Tidak muncul lagi di data baru (kemungkinan lunas/tutup)', hanyaDiLama, '')}
+    </div>
+  `;
+}
+
+/* ==== Export PDF (cetak laporan sesuai filter yang sedang tampil) ==== */
+
+const exportPdfBtn = document.getElementById('exportPdfBtn');
+const printArea = document.getElementById('printArea');
+
+exportPdfBtn.addEventListener('click', () => {
+  const rows = getFilteredRows();
+  const now = new Date();
+  const printedAt = now.toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'}) +
+    ' ' + now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+
+  const statusLabel = activeStatus === 'paid' ? ' · Status: sudah angsur' : activeStatus === 'unpaid' ? ' · Status: belum angsur' : '';
+  const produkLabel = activeProduk !== 'Semua' ? ` · Produk: ${shortProduk(activeProduk)}` : '';
+  const aoLabel = activeAO !== 'Semua' ? ` · AO: ${activeAO}` : '';
+  const searchLabel = searchEl.value.trim() ? ` · Cari: "${searchEl.value.trim()}"` : '';
+
+  const tableRows = rows.map(d => `
+    <tr class="${d.sudah_angsur ? 'paid' : ''}">
+      <td>${d.no_rekening}</td>
+      <td>${d.nama}</td>
+      <td>${shortProduk(d.produk)}</td>
+      <td>${d.ao || '-'}</td>
+      <td class="num">${fmtRupiah(d.saldo)}</td>
+      <td class="num">${fmtRupiah(d.angsuran_bulanan)}</td>
+      <td>${d.sudah_angsur ? 'Sudah angsur' : 'Belum angsur'}</td>
+    </tr>`).join('');
+
+  printArea.innerHTML = `
+    <h1>Data Nasabah — KOPENA Limpung</h1>
+    <div class="print-sub">Dicetak ${printedAt} · Menampilkan ${rows.length} dari ${DATA.length} nasabah${statusLabel}${produkLabel}${aoLabel}${searchLabel}</div>
+    <table>
+      <thead>
+        <tr>
+          <th>No. Rekening</th>
+          <th>Nama</th>
+          <th>Produk</th>
+          <th>AO</th>
+          <th>Outstanding</th>
+          <th>Angsuran/bln</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>${tableRows}</tbody>
+    </table>
+  `;
+
+  window.print();
 });
 </script>
 
