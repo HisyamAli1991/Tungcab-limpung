@@ -471,6 +471,8 @@ try{
    2. Tempel URL Web App hasil deploy di bawah ini, di antara tanda kutip.
    Jika dikosongkan, aplikasi tetap jalan seperti biasa memakai data lokal HP ini saja. */
 const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwkK44P8Alh3Q6VQC4_UsREWWmqsFTHoxc4bC6UjWUqtS2squXoCoxQlF8_jpxKWJ8r/exec';
+/* Kunci ini HARUS sama persis dengan API_SECRET_KEY di Code.gs (Apps Script). */
+const API_SECRET_KEY = '12cc24460413dcf085c944540610c472df8d3c4441fca84d';
 
 function setMeta(updatedAt, source){
   try{
@@ -486,7 +488,7 @@ async function loadFromServer(silent){
     statusEl.className = 'upload-status';
   }
   try{
-    const res = await fetch(SHEET_API_URL, {cache:'no-store'});
+    const res = await fetch(SHEET_API_URL + '?key=' + encodeURIComponent(API_SECRET_KEY), {cache:'no-store'});
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const records = await res.json();
     if(!Array.isArray(records)) throw new Error('Format data dari server tidak dikenali.');
@@ -519,7 +521,7 @@ async function saveToServer(records){
   try{
     await fetch(SHEET_API_URL, {
       method: 'POST',
-      body: JSON.stringify({records})
+      body: JSON.stringify({records, key: API_SECRET_KEY})
     });
     if(statusEl) statusEl.textContent += ' · tersimpan ke server';
   }catch(err){
