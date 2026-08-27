@@ -418,6 +418,7 @@
     <label class="upload-btn" for="csvFile">⭱ Upload CSV/XLS terbaru</label>
     <input id="csvFile" type="file" accept=".csv,.txt,.xls,.xlsx,.xml" style="display:none">
     <button id="resetBtn" class="reset-btn" type="button">Reset ke data bawaan</button>
+    <button id="syncBtn" class="reset-btn" type="button">⟳ Sinkronkan dari server</button>
     <span id="uploadStatus" class="upload-status"></span>
   </div>
   <div class="action-row">
@@ -463,6 +464,68 @@ try{
   const saved = localStorage.getItem(STORAGE_KEY);
   if(saved) DATA = JSON.parse(saved);
 }catch(e){ console.warn('Gagal memuat data tersimpan, memakai data bawaan.', e); }
+
+/* ==== Sinkronisasi dengan Google Sheets (via Google Apps Script) ====
+   1. Buat Google Sheet + deploy Apps Script (lihat file Code.gs).
+   2. Tempel URL Web App hasil deploy di bawah ini, di antara tanda kutip.
+   Jika dikosongkan, aplikasi tetap jalan seperti biasa memakai data lokal HP ini saja. */
+const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwkK44P8Alh3Q6VQC4_UsREWWmqsFTHoxc4bC6UjWUqtS2squXoCoxQlF8_jpxKWJ8r/exec';
+
+function setMeta(updatedAt, source){
+  try{
+    localStorage.setItem(STORAGE_META_KEY, JSON.stringify({updatedAt, source}));
+  }catch(e){}
+}
+
+async function loadFromServer(silent){
+  if(!SHEET_API_URL) return;
+  const statusEl = document.getElementById('uploadStatus');
+  if(!silent && statusEl){
+    statusEl.textContent = 'Mengambil data terbaru dari server...';
+    statusEl.className = 'upload-status';
+  }
+  try{
+    const res = await fetch(SHEET_API_URL, {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const records = await res.json();
+    if(!Array.isArray(records)) throw new Error('Format data dari server tidak dikenali.');
+    DATA = records;
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); }catch(e){}
+    const now = new Date();
+    const updatedAt = now.toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'}) +
+      ' ' + now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+    setMeta(updatedAt, 'server');
+    updateStats();
+    rebuildFilters();
+    rebuildAOFilter();
+    render();
+    if(statusEl){
+      statusEl.textContent = `✓ ${records.length} rekening dimuat dari server`;
+      statusEl.className = 'upload-status ok';
+    }
+  }catch(err){
+    console.warn('Gagal sinkron dari server, memakai data lokal.', err);
+    if(!silent && statusEl){
+      statusEl.textContent = 'Gagal mengambil data dari server: ' + err.message;
+      statusEl.className = 'upload-status err';
+    }
+  }
+}
+
+async function saveToServer(records){
+  if(!SHEET_API_URL) return;
+  const statusEl = document.getElementById('uploadStatus');
+  try{
+    await fetch(SHEET_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({records})
+    });
+    if(statusEl) statusEl.textContent += ' · tersimpan ke server';
+  }catch(err){
+    console.warn('Gagal menyimpan ke server.', err);
+    if(statusEl) statusEl.textContent += ' · GAGAL simpan ke server (cek koneksi)';
+  }
+}
 
 function fmtRupiah(n){
   const sign = n < 0 ? '-' : '';
@@ -858,7 +921,7 @@ csvFileInput.addEventListener('change', () => {
   uploadStatusEl.className = 'upload-status';
 
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try{
       const text = reader.result;
       const records = isExcelXml(text) ? xlsXmlToRecords(text) : csvToRecords(text);
@@ -881,6 +944,10 @@ csvFileInput.addEventListener('change', () => {
       render();
       uploadStatusEl.textContent = `✓ ${records.length} rekening dimuat dari "${file.name}"`;
       uploadStatusEl.className = 'upload-status ok';
+      if(SHEET_API_URL){
+        uploadStatusEl.textContent += ' · mengirim ke server...';
+        await saveToServer(records);
+      }
     }catch(err){
       console.error(err);
       uploadStatusEl.textContent = 'Gagal membaca CSV: ' + err.message;
@@ -894,6 +961,11 @@ csvFileInput.addEventListener('change', () => {
   };
   reader.readAsText(file, 'utf-8');
 });
+
+const syncBtn = document.getElementById('syncBtn');
+syncBtn.addEventListener('click', () => loadFromServer(false));
+// Ambil data terbaru dari server begitu halaman dibuka (kalau SHEET_API_URL sudah diisi)
+loadFromServer(true);
 
 resetBtn.addEventListener('click', () => {
   DATA = DEFAULT_DATA;
