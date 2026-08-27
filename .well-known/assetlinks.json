@@ -1,1 +1,8 @@
-
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.tungcab_limpung.twa",
+        "sha256_cert_fingerprints": ["89:DB:87:2B:87:A7:06:F8:28:28:39:3A:1C:81:DE:AF:E7:7F:23:0E:CA:F7:14:9D:1F:5C:15:67:0C:5F:48:0C"]
+      }
+    }]
