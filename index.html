@@ -416,7 +416,7 @@
     <input id="search" type="text" placeholder="Cari nasabah..." autocomplete="off">
   </div>
   <div class="upload-row">
-    <label class="upload-btn" for="csvFile">⭱ Upload CSV/XLS terbaru</label>
+    <button id="uploadBtn" class="upload-btn" type="button">⭱ Upload CSV/XLS terbaru</button>
     <input id="csvFile" type="file" accept=".csv,.txt,.xls,.xlsx,.xml" style="display:none">
     <button id="resetBtn" class="reset-btn" type="button">Reset ke data bawaan</button>
     <button id="syncBtn" class="reset-btn" type="button">⟳ Sinkronkan dari server</button>
@@ -911,9 +911,44 @@ function csvToRecords(text){
   return records;
 }
 
+/* ==== Proteksi password untuk aksi sensitif (Upload, Reset, Bandingkan) ====
+   Password TIDAK ditulis polos di kode, hanya hash SHA-256-nya yang disimpan.
+   Ini proteksi ringan (mencegah pengguna iseng), bukan keamanan tingkat tinggi -
+   karena ini file statis, siapa pun yang paham teknis tetap bisa membaca kode sumbernya.
+   Untuk ganti password: hitung SHA-256 dari password baru lalu ganti nilai ADMIN_PASSWORD_HASH. */
+const ADMIN_PASSWORD_HASH = '888df25ae35772424a560c7152a1de794440e0ea5cfee62828333a456a506e05';
+
+async function sha256Hex(text){
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+let passwordVerifiedUntil = 0; // timestamp; sekali benar, tidak perlu isi ulang selama beberapa menit
+const PASSWORD_GRACE_MS = 10 * 60 * 1000; // 10 menit
+
+async function requirePassword(){
+  if(Date.now() < passwordVerifiedUntil) return true;
+  const input = prompt('Masukkan password untuk melanjutkan:');
+  if(input === null) return false; // dibatalkan
+  const hash = await sha256Hex(input);
+  if(hash === ADMIN_PASSWORD_HASH){
+    passwordVerifiedUntil = Date.now() + PASSWORD_GRACE_MS;
+    return true;
+  }
+  alert('Password salah.');
+  return false;
+}
+
 const csvFileInput = document.getElementById('csvFile');
 const uploadStatusEl = document.getElementById('uploadStatus');
 const resetBtn = document.getElementById('resetBtn');
+const uploadBtn = document.getElementById('uploadBtn');
+
+uploadBtn.addEventListener('click', async () => {
+  const ok = await requirePassword();
+  if(ok) csvFileInput.click();
+});
 
 csvFileInput.addEventListener('change', () => {
   const file = csvFileInput.files[0];
@@ -968,7 +1003,9 @@ syncBtn.addEventListener('click', () => loadFromServer(false));
 // Ambil data terbaru dari server begitu halaman dibuka (kalau SHEET_API_URL sudah diisi)
 loadFromServer(true);
 
-resetBtn.addEventListener('click', () => {
+resetBtn.addEventListener('click', async () => {
+  const ok = await requirePassword();
+  if(!ok) return;
   DATA = DEFAULT_DATA;
   try{
     localStorage.removeItem(STORAGE_KEY);
@@ -1049,7 +1086,10 @@ function openCompare(){
 function closeCompare(){
   compareOverlay.classList.remove('show');
 }
-compareBtn.addEventListener('click', openCompare);
+compareBtn.addEventListener('click', async () => {
+  const ok = await requirePassword();
+  if(ok) openCompare();
+});
 compareOverlay.addEventListener('click', e => { if(e.target === compareOverlay) closeCompare(); });
 
 async function runCompare(){
