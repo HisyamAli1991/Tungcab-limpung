@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Data Nasabah — KOPENA Limpung</title>
@@ -374,6 +375,19 @@
   .compare-empty{font-size:0.8rem; color:var(--ink-soft); padding:4px 2px 10px;}
   .compare-status{font-size:0.78rem; color:var(--ink-soft); margin-top:6px;}
   .compare-status.err{color:#c24a30;}
+  .compare-export-row{display:flex; gap:8px; margin:12px 0 4px;}
+  .compare-export-btn{
+    flex:1;
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    font-size:0.78rem; font-weight:700;
+    padding:9px 10px; border-radius:999px;
+    border:1px solid var(--line);
+    background:var(--paper-raised);
+    color:var(--brand);
+    cursor:pointer;
+  }
+  .compare-export-btn:hover{background:var(--brand-soft);}
+  .compare-export-btn:disabled{opacity:0.5; cursor:not-allowed;}
 
   /* Print / export PDF */
   #printArea{display:none;}
@@ -1130,7 +1144,7 @@ async function runCompare(){
       if(!mapLama.has(rek)) hanyaDiBaru.push(dBaru);
     }
 
-    renderCompareResult({turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama, fileLama, fileBaru});
+    renderCompareResult({turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama}, fileLama.name, fileBaru.name);
     statusEl.textContent = `✓ Selesai · ${recLama.length} data lama vs ${recBaru.length} data baru`;
     statusEl.className = 'compare-status ok';
   }catch(err){
@@ -1156,20 +1170,32 @@ function compareGroupHtml(title, list, cls){
     list.map(d => compareItemHtml(d, cls)).join('');
 }
 
-function renderCompareResult({turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama}){
+let lastCompareResult = null;
+let lastCompareMeta = null;
+
+function renderCompareResult({turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama}, fileLamaName, fileBaruName){
+  lastCompareResult = {turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama};
+  lastCompareMeta = {fileLamaName, fileBaruName};
   const resultEl = document.getElementById('compareResult');
   resultEl.innerHTML = `
-    <div class="section">
+    <div class="section" id="compareResultInner">
       <div class="compare-summary">
         <div class="compare-stat down"><b>${turunJadiBelum.length}</b><span>Dulu tertagih, kini belum</span></div>
         <div class="compare-stat up"><b>${naikJadiSudah.length}</b><span>Dulu belum, kini tertagih</span></div>
       </div>
       ${compareGroupHtml('Perlu perhatian: dulu tertagih, sekarang belum angsur', turunJadiBelum, 'down')}
       ${compareGroupHtml('Progres baik: dulu belum, sekarang sudah angsur', naikJadiSudah, 'up')}
-      ${compareGroupHtml('Nasabah baru (hanya ada di data baru)', hanyaDiBaru, '')}
-      ${compareGroupHtml('Tidak muncul lagi di data baru (kemungkinan lunas/tutup)', hanyaDiLama, '')}
+      ${compareGroupHtml('Bulan lalu masuk, bulan ini belum (hilang dari data baru)', hanyaDiLama, 'down')}
+      ${compareGroupHtml('Bulan lalu belum ada, bulan ini masuk (baru muncul)', hanyaDiBaru, 'up')}
     </div>
+    <div class="compare-export-row">
+      <button class="compare-export-btn" id="compareExportPdfBtn" type="button">🖨 Export PDF</button>
+      <button class="compare-export-btn" id="compareExportImgBtn" type="button">🖼 Export Gambar</button>
+    </div>
+    <div class="compare-status" id="compareExportStatus"></div>
   `;
+  document.getElementById('compareExportPdfBtn').addEventListener('click', exportCompareAsPdf);
+  document.getElementById('compareExportImgBtn').addEventListener('click', exportCompareAsImage);
 }
 
 /* ==== Export PDF (cetak laporan sesuai filter yang sedang tampil) ==== */
@@ -1220,6 +1246,106 @@ exportPdfBtn.addEventListener('click', () => {
 
   window.print();
 });
+
+/* ==== Export hasil "Bandingkan 2 file" ke PDF / Gambar ==== */
+
+function compareRowsHtml(list){
+  if(list.length === 0){
+    return `<tr><td colspan="4" style="text-align:center; color:#666;">Tidak ada data</td></tr>`;
+  }
+  return list.map(d => `
+    <tr>
+      <td>${d.no_rekening}</td>
+      <td>${d.nama}</td>
+      <td>${shortProduk(d.produk)}</td>
+      <td>${d.ao || '-'}</td>
+    </tr>`).join('');
+}
+
+function buildCompareReportHtml(){
+  if(!lastCompareResult) return '';
+  const now = new Date();
+  const printedAt = now.toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'}) +
+    ' ' + now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+  const fileInfo = lastCompareMeta ? `Data lama: "${lastCompareMeta.fileLamaName}" · Data baru: "${lastCompareMeta.fileBaruName}"` : '';
+  const {turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama} = lastCompareResult;
+
+  const section = (title, list) => `
+    <h2 style="font-size:12pt; margin:16px 0 6px;">${title} (${list.length})</h2>
+    <table>
+      <thead><tr><th>No. Rekening</th><th>Nama</th><th>Produk</th><th>AO</th></tr></thead>
+      <tbody>${compareRowsHtml(list)}</tbody>
+    </table>`;
+
+  return `
+    <h1>Perbandingan Data Nasabah — KOPENA Limpung</h1>
+    <div class="print-sub">Dicetak ${printedAt}${fileInfo ? ' · ' + fileInfo : ''}</div>
+    ${section('Bulan lalu masuk, bulan ini belum (hilang dari data baru)', hanyaDiLama)}
+    ${section('Bulan lalu belum ada, bulan ini masuk (baru muncul)', hanyaDiBaru)}
+    ${section('Perlu perhatian: dulu tertagih, sekarang belum angsur', turunJadiBelum)}
+    ${section('Progres baik: dulu belum, sekarang sudah angsur', naikJadiSudah)}
+  `;
+}
+
+function exportCompareAsPdf(){
+  if(!lastCompareResult) return;
+  printArea.innerHTML = buildCompareReportHtml();
+  window.print();
+}
+
+async function exportCompareAsImage(){
+  if(!lastCompareResult) return;
+  const statusEl = document.getElementById('compareExportStatus');
+  const btn = document.getElementById('compareExportImgBtn');
+  if(typeof html2canvas === 'undefined'){
+    statusEl.textContent = 'Gagal memuat pustaka gambar. Cek koneksi internet lalu coba lagi.';
+    statusEl.className = 'compare-status err';
+    return;
+  }
+  btn.disabled = true;
+  statusEl.textContent = 'Menyiapkan gambar...';
+  statusEl.className = 'compare-status';
+
+  // Buat elemen laporan sementara di luar layar agar tidak terpotong oleh scroll area
+  const wrap = document.createElement('div');
+  wrap.style.position = 'fixed';
+  wrap.style.left = '-9999px';
+  wrap.style.top = '0';
+  wrap.style.width = '650px';
+  wrap.style.background = '#f6f4ee';
+  wrap.style.color = '#1c2b2a';
+  wrap.style.fontFamily = getComputedStyle(document.body).fontFamily;
+  wrap.style.padding = '20px';
+  wrap.innerHTML = `
+    <style>
+      #cmpimg h1{font-size:16px; margin:0 0 4px; color:#0f4d43;}
+      #cmpimg .print-sub{font-size:11px; color:#4a5a58; margin:0 0 14px;}
+      #cmpimg h2{font-size:13px; margin:16px 0 6px; color:#0f4d43;}
+      #cmpimg table{width:100%; border-collapse:collapse; font-size:11px;}
+      #cmpimg th, #cmpimg td{border:1px solid #dcd6c8; padding:5px 6px; text-align:left;}
+      #cmpimg th{background:#e4ede9;}
+    </style>
+    <div id="cmpimg">${buildCompareReportHtml()}</div>
+  `;
+  document.body.appendChild(wrap);
+
+  try{
+    const canvas = await html2canvas(wrap, {backgroundColor:'#f6f4ee', scale:2});
+    const link = document.createElement('a');
+    link.download = 'perbandingan-nasabah-kopena.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    statusEl.textContent = '✓ Gambar berhasil diunduh.';
+    statusEl.className = 'compare-status ok';
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = 'Gagal membuat gambar: ' + err.message;
+    statusEl.className = 'compare-status err';
+  }finally{
+    document.body.removeChild(wrap);
+    btn.disabled = false;
+  }
+}
 </script>
 
 <script>
