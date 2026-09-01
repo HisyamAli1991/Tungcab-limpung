@@ -370,9 +370,17 @@
   }
   .compare-item.down{border-left-color:#c24a30;}
   .compare-item.up{border-left-color:var(--paid-line);}
+  .compare-item.neutral{border-left-color:var(--line);}
   .compare-item .nm{font-weight:700;}
   .compare-item .rek{font-size:0.7rem; color:var(--ink-soft);}
   .compare-empty{font-size:0.8rem; color:var(--ink-soft); padding:4px 2px 10px;}
+  .coll-filter-row{display:flex; flex-wrap:wrap; gap:6px; margin:4px 2px 10px;}
+  .coll-filter-btn{
+    font-size:0.72rem; padding:5px 10px; border-radius:999px;
+    border:1px solid var(--line); background:var(--paper-raised);
+    color:var(--ink); cursor:pointer;
+  }
+  .coll-filter-btn.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
   .compare-status{font-size:0.78rem; color:var(--ink-soft); margin-top:6px;}
   .compare-status.err{color:#c24a30;}
   .compare-export-row{display:flex; gap:8px; margin:12px 0 4px;}
@@ -847,6 +855,7 @@ function xlsXmlToRecords(text){
     const nama = cells[1];
     const plafon = toNum(cells[2]);
     const sisa_pokok_akhir = toNum(cells[4]);
+    const coll = cells[5] !== undefined && cells[5] !== '' ? toNum(cells[5]) : null;
     const angsuran_bulanan = toNum(cells[9]);
     const pembayaran_pokok = toNum(cells[10]);
     const pembayaran_margin = toNum(cells[11]);
@@ -882,7 +891,8 @@ function xlsXmlToRecords(text){
       kode_produk: currentKodeProduk,
       saldo_pokok_net: tunggakan_akhir_pokok,
       saldo_total_net: tunggakan_akhir_pokok + tunggakan_akhir_margin,
-      sudah_angsur: (pembayaran_pokok > 0 || pembayaran_margin > 0)
+      sudah_angsur: (pembayaran_pokok > 0 || pembayaran_margin > 0),
+      coll
     });
   }
   return records;
@@ -921,7 +931,8 @@ function csvToRecords(text){
       kode_produk: (f[29]||'').trim(),
       saldo_pokok_net: toNum(f[30]),
       saldo_total_net: toNum(f[31]),
-      sudah_angsur: pembayaran_pokok > 0
+      sudah_angsur: pembayaran_pokok > 0,
+      coll: null
     });
   }
   return records;
@@ -1144,7 +1155,7 @@ async function runCompare(){
       if(!mapLama.has(rek)) hanyaDiBaru.push(dBaru);
     }
 
-    renderCompareResult({turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama}, fileLama.name, fileBaru.name);
+    renderCompareResult({turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama, recBaru}, fileLama.name, fileBaru.name);
     statusEl.textContent = `✓ Selesai · ${recLama.length} data lama vs ${recBaru.length} data baru`;
     statusEl.className = 'compare-status ok';
   }catch(err){
@@ -1155,10 +1166,14 @@ async function runCompare(){
   runBtn.disabled = false;
 }
 
+function collLabel(coll){
+  return (coll === null || coll === undefined || coll === '') ? '' : ` &middot; Coll: ${coll}`;
+}
+
 function compareItemHtml(d, cls){
   return `<div class="compare-item ${cls}">
     <div class="nm">${d.nama}</div>
-    <div class="rek nums">${d.no_rekening} &middot; ${shortProduk(d.produk)}${d.ao ? ' &middot; AO: '+d.ao : ''}</div>
+    <div class="rek nums">${d.no_rekening} &middot; ${shortProduk(d.produk)}${d.ao ? ' &middot; AO: '+d.ao : ''}${collLabel(d.coll)}</div>
   </div>`;
 }
 
@@ -1172,11 +1187,31 @@ function compareGroupHtml(title, list, cls){
 
 let lastCompareResult = null;
 let lastCompareMeta = null;
+let activeCollFilter = 'all';
 
-function renderCompareResult({turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama}, fileLamaName, fileBaruName){
-  lastCompareResult = {turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama};
+function collFilterOptionsHtml(recBaru){
+  const collValues = [0,1,2,3,4];
+  const counts = {};
+  collValues.forEach(c => counts[c] = 0);
+  recBaru.forEach(d => { if(d.coll !== null && d.coll !== undefined && counts[d.coll] !== undefined) counts[d.coll]++; });
+  const btn = (val, label) => `<button type="button" class="coll-filter-btn${activeCollFilter === val ? ' active' : ''}" data-coll="${val}">${label}</button>`;
+  return `<div class="coll-filter-row">
+    ${btn('all', `Semua (${recBaru.length})`)}
+    ${collValues.map(c => btn(String(c), `Coll ${c} (${counts[c]})`)).join('')}
+  </div>`;
+}
+
+function collFilterResultHtml(recBaru){
+  const filtered = activeCollFilter === 'all' ? recBaru : recBaru.filter(d => String(d.coll) === activeCollFilter);
+  return compareGroupHtml(`Nasabah bulan ini${activeCollFilter === 'all' ? '' : ' — Coll ' + activeCollFilter}`, filtered, 'neutral');
+}
+
+function renderCompareResult({turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama, recBaru}, fileLamaName, fileBaruName){
+  lastCompareResult = {turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama, recBaru};
   lastCompareMeta = {fileLamaName, fileBaruName};
+  activeCollFilter = 'all';
   const resultEl = document.getElementById('compareResult');
+  const hasColl = (recBaru || []).some(d => d.coll !== null && d.coll !== undefined);
   resultEl.innerHTML = `
     <div class="section" id="compareResultInner">
       <div class="compare-summary">
@@ -1187,6 +1222,11 @@ function renderCompareResult({turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaD
       ${compareGroupHtml('Progres baik: dulu belum, sekarang sudah angsur', naikJadiSudah, 'up')}
       ${compareGroupHtml('Bulan lalu masuk, bulan ini belum (LUNAS)', hanyaDiLama, 'down')}
       ${compareGroupHtml('Bulan lalu belum ada, bulan ini masuk (PEMBIAYAAN BARU)', hanyaDiBaru, 'up')}
+      ${hasColl ? `
+      <div class="compare-group-title">Filter per Coll (bulan ini)</div>
+      <div id="collFilterOptions">${collFilterOptionsHtml(recBaru)}</div>
+      <div id="collFilterResult">${collFilterResultHtml(recBaru)}</div>
+      ` : ''}
     </div>
     <div class="compare-export-row">
       <button class="compare-export-btn" id="compareExportPdfBtn" type="button">🖨 Export PDF</button>
@@ -1196,6 +1236,15 @@ function renderCompareResult({turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaD
   `;
   document.getElementById('compareExportPdfBtn').addEventListener('click', exportCompareAsPdf);
   document.getElementById('compareExportImgBtn').addEventListener('click', exportCompareAsImage);
+  if(hasColl){
+    document.getElementById('collFilterOptions').addEventListener('click', e => {
+      const b = e.target.closest('.coll-filter-btn');
+      if(!b) return;
+      activeCollFilter = b.dataset.coll;
+      document.getElementById('collFilterOptions').innerHTML = collFilterOptionsHtml(recBaru);
+      document.getElementById('collFilterResult').innerHTML = collFilterResultHtml(recBaru);
+    });
+  }
 }
 
 /* ==== Export PDF (cetak laporan sesuai filter yang sedang tampil) ==== */
@@ -1251,7 +1300,7 @@ exportPdfBtn.addEventListener('click', () => {
 
 function compareRowsHtml(list){
   if(list.length === 0){
-    return `<tr><td colspan="4" style="text-align:center; color:#666;">Tidak ada data</td></tr>`;
+    return `<tr><td colspan="5" style="text-align:center; color:#666;">Tidak ada data</td></tr>`;
   }
   return list.map(d => `
     <tr>
@@ -1259,6 +1308,7 @@ function compareRowsHtml(list){
       <td>${d.nama}</td>
       <td>${shortProduk(d.produk)}</td>
       <td>${d.ao || '-'}</td>
+      <td>${(d.coll === null || d.coll === undefined || d.coll === '') ? '-' : d.coll}</td>
     </tr>`).join('');
 }
 
@@ -1268,14 +1318,18 @@ function buildCompareReportHtml(){
   const printedAt = now.toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'}) +
     ' ' + now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
   const fileInfo = lastCompareMeta ? `Data lama: "${lastCompareMeta.fileLamaName}" · Data baru: "${lastCompareMeta.fileBaruName}"` : '';
-  const {turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama} = lastCompareResult;
+  const {turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama, recBaru} = lastCompareResult;
 
   const section = (title, list) => `
     <h2 style="font-size:12pt; margin:16px 0 6px;">${title} (${list.length})</h2>
     <table>
-      <thead><tr><th>No. Rekening</th><th>Nama</th><th>Produk</th><th>AO</th></tr></thead>
+      <thead><tr><th>No. Rekening</th><th>Nama</th><th>Produk</th><th>AO</th><th>Coll</th></tr></thead>
       <tbody>${compareRowsHtml(list)}</tbody>
     </table>`;
+
+  const hasColl = (recBaru || []).some(d => d.coll !== null && d.coll !== undefined);
+  const collFilteredList = hasColl ? (activeCollFilter === 'all' ? recBaru : recBaru.filter(d => String(d.coll) === activeCollFilter)) : [];
+  const collSectionTitle = `Nasabah bulan ini${activeCollFilter === 'all' ? '' : ' — Coll ' + activeCollFilter}`;
 
   return `
     <h1>Perbandingan Data Nasabah — KOPENA Limpung</h1>
@@ -1284,6 +1338,7 @@ function buildCompareReportHtml(){
     ${section('Bulan lalu belum ada, bulan ini masuk (PEMBIAYAAN BARU)', hanyaDiBaru)}
     ${section('Perlu perhatian: dulu tertagih, sekarang belum angsur', turunJadiBelum)}
     ${section('Progres baik: dulu belum, sekarang sudah angsur', naikJadiSudah)}
+    ${hasColl ? section(collSectionTitle, collFilteredList) : ''}
   `;
 }
 
