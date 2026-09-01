@@ -1185,8 +1185,8 @@ function renderCompareResult({turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaD
       </div>
       ${compareGroupHtml('Perlu perhatian: dulu tertagih, sekarang belum angsur', turunJadiBelum, 'down')}
       ${compareGroupHtml('Progres baik: dulu belum, sekarang sudah angsur', naikJadiSudah, 'up')}
-      ${compareGroupHtml('Bulan lalu masuk, bulan ini belum (hilang dari data baru)', hanyaDiLama, 'down')}
-      ${compareGroupHtml('Bulan lalu belum ada, bulan ini masuk (baru muncul)', hanyaDiBaru, 'up')}
+      ${compareGroupHtml('Bulan lalu masuk, bulan ini belum (LUNAS)', hanyaDiLama, 'down')}
+      ${compareGroupHtml('Bulan lalu belum ada, bulan ini masuk (PEMBIAYAAN BARU)', hanyaDiBaru, 'up')}
     </div>
     <div class="compare-export-row">
       <button class="compare-export-btn" id="compareExportPdfBtn" type="button">🖨 Export PDF</button>
@@ -1280,8 +1280,8 @@ function buildCompareReportHtml(){
   return `
     <h1>Perbandingan Data Nasabah — KOPENA Limpung</h1>
     <div class="print-sub">Dicetak ${printedAt}${fileInfo ? ' · ' + fileInfo : ''}</div>
-    ${section('Bulan lalu masuk, bulan ini belum (hilang dari data baru)', hanyaDiLama)}
-    ${section('Bulan lalu belum ada, bulan ini masuk (baru muncul)', hanyaDiBaru)}
+    ${section('Bulan lalu masuk, bulan ini belum (LUNAS)', hanyaDiLama)}
+    ${section('Bulan lalu belum ada, bulan ini masuk (PEMBIAYAAN BARU)', hanyaDiBaru)}
     ${section('Perlu perhatian: dulu tertagih, sekarang belum angsur', turunJadiBelum)}
     ${section('Progres baik: dulu belum, sekarang sudah angsur', naikJadiSudah)}
   `;
