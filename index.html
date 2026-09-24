@@ -509,6 +509,7 @@
       <button id="syncBtn" class="admin-item" type="button"><span class="ai-ic">⟳</span><span><b>Sinkronkan dari server</b><small>Ambil data terbaru sekarang</small></span></button>
       <button id="resetBtn" class="admin-item danger" type="button"><span class="ai-ic">↺</span><span><b>Reset ke data bawaan</b><small>Hanya di perangkat ini</small></span></button>
       <div id="uploadStatus" class="upload-status"></div>
+      <div id="adminInfo" class="admin-hint" style="font-size:0.7rem"></div>
     </div>
   </div>
 </div>
@@ -560,6 +561,8 @@ try{
 const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwkK44P8Alh3Q6VQC4_UsREWWmqsFTHoxc4bC6UjWUqtS2squXoCoxQlF8_jpxKWJ8r/exec';
 /* Kunci ini HARUS sama persis dengan API_SECRET_KEY di Code.gs (Apps Script). */
 let lastServerLoad = 0;
+const APP_VERSION = 'v4 · 24 Sep 2026 · Coll via server';
+let lastServerInfo = null;
 let uploadBusy = false;
 const API_SECRET_KEY = '12cc24460413dcf085c944540610c472df8d3c4441fca84d';
 
@@ -586,6 +589,7 @@ async function loadFromServer(silent){
       const m = typeof d.kode_ao === 'string' && d.kode_ao.match(/^COLL:(\d+)$/);
       if(m){ if(getColl(d) === null) d.coll = Number(m[1]); d.kode_ao = ''; }
     });
+    lastServerInfo = {total: records.length, serverColl: records.filter(d => getColl(d) !== null).length};
     const prevColl = new Map(DATA.filter(d => getColl(d) !== null).map(d => [d.no_rekening, d.coll]));
     DATA = records.map(d => (getColl(d) === null && prevColl.has(d.no_rekening)) ? Object.assign({}, d, {coll: prevColl.get(d.no_rekening)}) : d);
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); }catch(e){}
@@ -622,6 +626,30 @@ async function saveToServer(records){
   }catch(err){
     console.warn('Gagal menyimpan ke server.', err);
     if(statusEl) statusEl.textContent += ' · GAGAL simpan ke server (cek koneksi)';
+  }
+}
+
+async function verifyServerColl(sent){
+  const statusEl = document.getElementById('uploadStatus');
+  const localColl = sent.filter(d => getColl(d) !== null).length;
+  if(!SHEET_API_URL || localColl === 0 || !statusEl) return;
+  try{
+    await new Promise(r => setTimeout(r, 2500));
+    const res = await fetch(SHEET_API_URL + '?key=' + encodeURIComponent(API_SECRET_KEY), {cache:'no-store'});
+    const recs = await res.json();
+    if(!Array.isArray(recs)) throw new Error('format');
+    const n = recs.filter(d => getColl(d) !== null || /^COLL:\d+$/.test(String(d.kode_ao || ''))).length;
+    if(n >= localColl){
+      statusEl.textContent += ` · ✓ server menyimpan Coll (${n}/${recs.length})`;
+      statusEl.className = 'upload-status ok';
+    }else{
+      statusEl.textContent += n > 0
+        ? ` · ⚠ server hanya menyimpan Coll ${n} dari ${localColl} rekening`
+        : ' · ⚠ server TIDAK menyimpan Coll (0 rekening) — Code.gs perlu diubah';
+      statusEl.className = 'upload-status err';
+    }
+  }catch(e){
+    statusEl.textContent += ' · gagal memeriksa server';
   }
 }
 
@@ -715,7 +743,8 @@ collPanelEl.addEventListener('click', e => {
 function renderCollPanel(){
   if(!hasCollData()){
     activeColl = 'all';
-    collPanelEl.innerHTML = `<div class="coll-hint">Info Coll belum ada di data ini. Upload file XLS/XML terbaru yang memuat kolom Coll untuk memakai klasifikasi setoran per Coll.</div>`;
+    const info = lastServerInfo ? ` [Server: ${lastServerInfo.serverColl} dari ${lastServerInfo.total} rekening berisi Coll]` : '';
+    collPanelEl.innerHTML = `<div class="coll-hint">Info Coll belum ada di data ini. Admin perlu upload file XLS/XML terbaru yang memuat kolom Coll.<br><span style="opacity:.7">Versi app: ${APP_VERSION}${info}</span></div>`;
     return;
   }
   const base = getBaseRows();
@@ -1130,6 +1159,7 @@ csvFileInput.addEventListener('change', () => {
       if(SHEET_API_URL){
         uploadStatusEl.textContent += ' · mengirim ke server...';
         await saveToServer(records);
+        await verifyServerColl(records);
       }
     }catch(err){
       console.error(err);
@@ -1149,7 +1179,12 @@ csvFileInput.addEventListener('change', () => {
 
 /* ==== Menu Admin (semua aksi ubah data ada di sini, dilindungi password) ==== */
 const adminOverlay = document.getElementById('adminOverlay');
-function openAdmin(){ adminOverlay.classList.add('show'); }
+function openAdmin(){
+  const localColl = DATA.filter(d => getColl(d) !== null).length;
+  const srv = lastServerInfo ? `Server terakhir: ${lastServerInfo.serverColl} dari ${lastServerInfo.total} rekening berisi Coll.` : 'Server: belum berhasil dimuat.';
+  document.getElementById('adminInfo').innerHTML = `Versi app: ${APP_VERSION}<br>Di perangkat ini: ${localColl} dari ${DATA.length} rekening punya Coll.<br>${srv}`;
+  adminOverlay.classList.add('show');
+}
 function closeAdmin(){ adminOverlay.classList.remove('show'); }
 document.getElementById('adminBtn').addEventListener('click', async () => {
   const ok = await requirePassword();
