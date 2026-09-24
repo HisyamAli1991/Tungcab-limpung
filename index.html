@@ -397,6 +397,28 @@
   .compare-export-btn:hover{background:var(--brand-soft);}
   .compare-export-btn:disabled{opacity:0.5; cursor:not-allowed;}
 
+  /* Klasifikasi per Coll */
+  .coll-panel{padding:8px 16px 2px;}
+  .coll-title{font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-soft); margin:0 2px 6px;}
+  .coll-row{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;}
+  .coll-card{
+    flex:1 0 82px;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:8px 10px;
+    cursor:pointer; user-select:none;
+    transition:transform 0.08s;
+  }
+  .coll-card:active{transform:scale(0.97);}
+  .coll-card .cn{font-size:0.7rem; color:var(--ink-soft); font-weight:700;}
+  .coll-card .ct{font-size:1.15rem; font-weight:700; line-height:1.2;}
+  .coll-card .cs{display:flex; flex-direction:column; font-size:0.68rem; margin-top:2px;}
+  .coll-card .cs .ok{color:var(--paid-text);}
+  .coll-card .cs .no{color:#b5482a;}
+  .coll-card.active{border:2px solid var(--brand); background:var(--brand-soft); padding:7px 9px;}
+  .coll-hint{font-size:0.75rem; color:var(--ink-soft); background:var(--paper-raised); border:1px dashed var(--line); border-radius:8px; padding:8px 10px;}
+
   /* Print / export PDF */
   #printArea{display:none;}
   @media print{
@@ -462,6 +484,8 @@
   <div class="stat" id="cardUnpaid" data-status="unpaid"><b id="statUnpaid">0</b><span>Belum angsur</span></div>
 </div>
 
+<div class="coll-panel" id="collPanel"></div>
+
 <div class="filters" id="filters"></div>
 
 <div class="ao-filter-row">
@@ -514,7 +538,8 @@ async function loadFromServer(silent){
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const records = await res.json();
     if(!Array.isArray(records)) throw new Error('Format data dari server tidak dikenali.');
-    DATA = records;
+    const prevColl = new Map(DATA.filter(d => getColl(d) !== null).map(d => [d.no_rekening, d.coll]));
+    DATA = records.map(d => (getColl(d) === null && prevColl.has(d.no_rekening)) ? Object.assign({}, d, {coll: prevColl.get(d.no_rekening)}) : d);
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); }catch(e){}
     const now = new Date();
     const updatedAt = now.toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'}) +
@@ -621,6 +646,43 @@ function updateStats(){
 updateStats();
 
 let activeStatus = 'all';
+let activeColl = 'all';
+
+function getColl(d){
+  const c = d.coll;
+  if(c === null || c === undefined || c === '') return null;
+  const n = Number(c);
+  return isNaN(n) ? null : n;
+}
+function hasCollData(){ return DATA.some(d => getColl(d) !== null); }
+
+const collPanelEl = document.getElementById('collPanel');
+collPanelEl.addEventListener('click', e => {
+  const card = e.target.closest('.coll-card');
+  if(!card) return;
+  activeColl = (card.dataset.coll === activeColl) ? 'all' : card.dataset.coll;
+  render();
+});
+
+function renderCollPanel(){
+  if(!hasCollData()){
+    activeColl = 'all';
+    collPanelEl.innerHTML = `<div class="coll-hint">Info Coll belum ada di data ini. Upload file XLS/XML terbaru yang memuat kolom Coll untuk memakai klasifikasi setoran per Coll.</div>`;
+    return;
+  }
+  const base = getBaseRows();
+  const card = (val, label, list) => {
+    const sudah = list.filter(d => d.sudah_angsur).length;
+    return `<div class="coll-card ${String(activeColl) === String(val) ? 'active' : ''}" data-coll="${val}">
+      <div class="cn">${label}</div>
+      <div class="ct nums">${list.length}</div>
+      <div class="cs nums"><span class="ok">✓ ${sudah} sudah</span><span class="no">○ ${list.length - sudah} belum</span></div>
+    </div>`;
+  };
+  const cards = [card('all', 'Semua', base)];
+  [1,2,3,4].forEach(c => cards.push(card(c, 'Coll ' + c, base.filter(d => getColl(d) === c))));
+  collPanelEl.innerHTML = `<div class="coll-title">Klasifikasi setoran per Coll</div><div class="coll-row">${cards.join('')}</div>`;
+}
 const statCards = document.querySelectorAll('.stat[data-status]');
 statCards.forEach(card => {
   card.addEventListener('click', () => {
@@ -640,11 +702,17 @@ function matches(d, q){
          d.ao.toLowerCase().includes(q);
 }
 
-function getFilteredRows(){
+function getBaseRows(){
   const q = searchEl.value.trim();
   let rows = DATA.filter(d => matches(d, q));
   if(activeProduk !== 'Semua') rows = rows.filter(d => d.produk === activeProduk);
   if(activeAO !== 'Semua') rows = rows.filter(d => (d.ao || '').trim() === activeAO);
+  return rows;
+}
+
+function getFilteredRows(){
+  let rows = getBaseRows();
+  if(activeColl !== 'all') rows = rows.filter(d => getColl(d) === Number(activeColl));
   if(activeStatus === 'paid') rows = rows.filter(d => d.sudah_angsur);
   if(activeStatus === 'unpaid') rows = rows.filter(d => !d.sudah_angsur);
   return rows;
@@ -655,7 +723,9 @@ function render(){
 
   const statusLabel = activeStatus === 'paid' ? ' · sudah angsur' : activeStatus === 'unpaid' ? ' · belum angsur' : '';
   const aoLabel = activeAO !== 'Semua' ? ` · AO: ${activeAO}` : '';
-  countRow.textContent = `Menampilkan ${rows.length} dari ${DATA.length} nasabah${statusLabel}${aoLabel}`;
+  const collLabelTxt = activeColl !== 'all' ? ` · Coll ${activeColl}` : '';
+  renderCollPanel();
+  countRow.textContent = `Menampilkan ${rows.length} dari ${DATA.length} nasabah${statusLabel}${collLabelTxt}${aoLabel}`;
 
   if(rows.length === 0){
     listEl.innerHTML = `<div class="empty">Tidak ada nasabah yang cocok dengan pencarian.</div>`;
@@ -671,7 +741,7 @@ function render(){
         <div class="card-rek nums">${d.no_rekening}</div>
       </div>
       <div class="card-mid">
-        <div class="badge">${shortProduk(d.produk)}</div>
+        <div class="badge">${shortProduk(d.produk)}${getColl(d) !== null ? ' · Coll ' + getColl(d) : ''}</div>
         <div class="status-tag">${d.sudah_angsur ? '✓ Sudah angsur' : 'Belum angsur'}</div>
       </div>
       <div class="card-bottom">
@@ -737,6 +807,7 @@ function openDetail(d){
         <div class="field"><span class="lbl">Sisa total akhir</span><span class="val nums">${fmtRupiah(d.sisa_total_akhir)}</span></div>
         <div class="field"><span class="lbl">Margin/bunga</span><span class="val nums">${d.margin_rate}%</span></div>
         <div class="field"><span class="lbl">Tipe</span><span class="val">${d.kode_tipe === '1' ? 'Simpanan' : 'Pembiayaan'}</span></div>
+        ${getColl(d) !== null ? `<div class="field"><span class="lbl">Coll</span><span class="val">${getColl(d)}</span></div>` : ''}
       </div>
     </div>
 
@@ -1203,7 +1274,9 @@ function collFilterOptionsHtml(recBaru){
 
 function collFilterResultHtml(recBaru){
   const filtered = activeCollFilter === 'all' ? recBaru : recBaru.filter(d => String(d.coll) === activeCollFilter);
-  return compareGroupHtml(`Nasabah bulan ini${activeCollFilter === 'all' ? '' : ' — Coll ' + activeCollFilter}`, filtered, 'neutral');
+  const suffix = activeCollFilter === 'all' ? '' : ' — Coll ' + activeCollFilter;
+  return compareGroupHtml(`Nasabah bulan ini${suffix} · SUDAH angsur`, filtered.filter(d => d.sudah_angsur), 'up') +
+         compareGroupHtml(`Nasabah bulan ini${suffix} · BELUM angsur`, filtered.filter(d => !d.sudah_angsur), 'down');
 }
 
 function renderCompareResult({turunJadiBelum, naikJadiSudah, hanyaDiBaru, hanyaDiLama, recBaru}, fileLamaName, fileBaruName){
@@ -1261,6 +1334,7 @@ exportPdfBtn.addEventListener('click', () => {
   const statusLabel = activeStatus === 'paid' ? ' · Status: sudah angsur' : activeStatus === 'unpaid' ? ' · Status: belum angsur' : '';
   const produkLabel = activeProduk !== 'Semua' ? ` · Produk: ${shortProduk(activeProduk)}` : '';
   const aoLabel = activeAO !== 'Semua' ? ` · AO: ${activeAO}` : '';
+  const collPdfLabel = activeColl !== 'all' ? ` · Coll: ${activeColl}` : '';
   const searchLabel = searchEl.value.trim() ? ` · Cari: "${searchEl.value.trim()}"` : '';
 
   const tableRows = rows.map(d => `
@@ -1269,6 +1343,7 @@ exportPdfBtn.addEventListener('click', () => {
       <td>${d.nama}</td>
       <td>${shortProduk(d.produk)}</td>
       <td>${d.ao || '-'}</td>
+      <td>${getColl(d) !== null ? getColl(d) : '-'}</td>
       <td class="num">${fmtRupiah(d.saldo)}</td>
       <td class="num">${fmtRupiah(d.angsuran_bulanan)}</td>
       <td>${d.sudah_angsur ? 'Sudah angsur' : 'Belum angsur'}</td>
@@ -1276,7 +1351,7 @@ exportPdfBtn.addEventListener('click', () => {
 
   printArea.innerHTML = `
     <h1>Data Nasabah — KOPENA Limpung</h1>
-    <div class="print-sub">Dicetak ${printedAt} · Menampilkan ${rows.length} dari ${DATA.length} nasabah${statusLabel}${produkLabel}${aoLabel}${searchLabel}</div>
+    <div class="print-sub">Dicetak ${printedAt} · Menampilkan ${rows.length} dari ${DATA.length} nasabah${statusLabel}${collPdfLabel}${produkLabel}${aoLabel}${searchLabel}</div>
     <table>
       <thead>
         <tr>
@@ -1284,6 +1359,7 @@ exportPdfBtn.addEventListener('click', () => {
           <th>Nama</th>
           <th>Produk</th>
           <th>AO</th>
+          <th>Coll</th>
           <th>Outstanding</th>
           <th>Angsuran/bln</th>
           <th>Status</th>
@@ -1338,7 +1414,8 @@ function buildCompareReportHtml(){
     ${section('Bulan lalu belum ada, bulan ini masuk (PEMBIAYAAN BARU)', hanyaDiBaru)}
     ${section('Perlu perhatian: dulu tertagih, sekarang belum angsur', turunJadiBelum)}
     ${section('Progres baik: dulu belum, sekarang sudah angsur', naikJadiSudah)}
-    ${hasColl ? section(collSectionTitle, collFilteredList) : ''}
+    ${hasColl ? section(collSectionTitle + ' · SUDAH angsur', collFilteredList.filter(d => d.sudah_angsur)) : ''}
+    ${hasColl ? section(collSectionTitle + ' · BELUM angsur', collFilteredList.filter(d => !d.sudah_angsur)) : ''}
   `;
 }
 
