@@ -397,6 +397,35 @@
   .compare-export-btn:hover{background:var(--brand-soft);}
   .compare-export-btn:disabled{opacity:0.5; cursor:not-allowed;}
 
+  /* Menu Admin */
+  .search-row{display:flex; align-items:center; gap:8px;}
+  .search-row .search-wrap{flex:1; min-width:0;}
+  .admin-open-btn{
+    flex:0 0 auto;
+    font-size:0.78rem; font-weight:700;
+    padding:10px 14px; border-radius:999px;
+    border:1px solid rgba(243,239,228,0.35);
+    background:rgba(243,239,228,0.12);
+    color:#f3efe4; cursor:pointer; white-space:nowrap;
+  }
+  .admin-open-btn:active{background:rgba(243,239,228,0.25);}
+  .admin-body{padding:14px 16px 0; display:flex; flex-direction:column; gap:8px;}
+  .admin-hint{font-size:0.75rem; color:var(--ink-soft); background:var(--brand-soft); border-radius:8px; padding:9px 12px;}
+  .admin-item{
+    display:flex; align-items:center; gap:12px; width:100%;
+    text-align:left; font:inherit; color:var(--ink);
+    background:var(--paper-raised); border:1px solid var(--line);
+    border-radius:var(--radius); padding:11px 12px; cursor:pointer;
+  }
+  .admin-item:active{background:var(--brand-soft);}
+  .admin-item .ai-ic{font-size:1.2rem; width:26px; text-align:center; flex:0 0 auto;}
+  .admin-item b{display:block; font-size:0.88rem;}
+  .admin-item small{display:block; font-size:0.72rem; color:var(--ink-soft); margin-top:1px;}
+  .admin-item.danger b{color:#b5482a;}
+  .admin-body .upload-status{color:var(--ink-soft); min-height:1em; padding:0 2px;}
+  .admin-body .upload-status.ok{color:var(--paid-text);}
+  .admin-body .upload-status.err{color:#c24a30;}
+
   /* Klasifikasi per Coll */
   .coll-panel{padding:8px 16px 2px;}
   .coll-title{font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-soft); margin:0 2px 6px;}
@@ -455,22 +484,34 @@
 <header class="top">
   <h1>Data Nasabah — KOPENA Limpung</h1>
   <p id="subtitle">328 rekening &middot; cari nama, nomor rekening, atau alamat</p>
-  <div class="search-wrap">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a8578" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input id="search" type="text" placeholder="Cari nasabah..." autocomplete="off">
-  </div>
-  <div class="upload-row">
-    <button id="uploadBtn" class="upload-btn" type="button">⭱ Upload CSV/XLS terbaru</button>
-    <input id="csvFile" type="file" accept=".csv,.txt,.xls,.xlsx,.xml" style="display:none">
-    <button id="resetBtn" class="reset-btn" type="button">Reset ke data bawaan</button>
-    <button id="syncBtn" class="reset-btn" type="button">⟳ Sinkronkan dari server</button>
-    <span id="uploadStatus" class="upload-status"></span>
-  </div>
-  <div class="action-row">
-    <button id="compareBtn" class="action-btn" type="button">⇄ Bandingkan 2 file</button>
-    <button id="exportPdfBtn" class="action-btn" type="button">🖨 Export PDF</button>
+  <div class="search-row">
+    <div class="search-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a8578" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="search" type="text" placeholder="Cari nasabah..." autocomplete="off">
+    </div>
+    <button id="adminBtn" class="admin-open-btn" type="button">🔒 Admin</button>
   </div>
 </header>
+
+<div class="overlay" id="adminOverlay">
+  <div class="sheet" id="adminSheet">
+    <div class="sheet-head">
+      <button class="close" id="adminCloseBtn" type="button">✕</button>
+      <h2>Menu Admin</h2>
+      <div class="sub">Kelola data, perbandingan, dan export</div>
+    </div>
+    <div class="admin-body">
+      <div class="admin-hint">Rekan kantor otomatis melihat data terbaru dari server setiap membuka aplikasi. Perubahan data hanya lewat menu ini.</div>
+      <button id="uploadBtn" class="admin-item" type="button"><span class="ai-ic">⭱</span><span><b>Upload CSV/XLS terbaru</b><small>Ganti data dan kirim ke server</small></span></button>
+      <input id="csvFile" type="file" accept=".csv,.txt,.xls,.xlsx,.xml" style="display:none">
+      <button id="compareBtn" class="admin-item" type="button"><span class="ai-ic">⇄</span><span><b>Bandingkan 2 file</b><small>Data lama vs data baru, filter per Coll</small></span></button>
+      <button id="exportPdfBtn" class="admin-item" type="button"><span class="ai-ic">🖨</span><span><b>Export PDF</b><small>Sesuai filter yang sedang tampil di daftar</small></span></button>
+      <button id="syncBtn" class="admin-item" type="button"><span class="ai-ic">⟳</span><span><b>Sinkronkan dari server</b><small>Ambil data terbaru sekarang</small></span></button>
+      <button id="resetBtn" class="admin-item danger" type="button"><span class="ai-ic">↺</span><span><b>Reset ke data bawaan</b><small>Hanya di perangkat ini</small></span></button>
+      <div id="uploadStatus" class="upload-status"></div>
+    </div>
+  </div>
+</div>
 
 <div class="overlay" id="compareOverlay">
   <div class="sheet" id="compareSheet"></div>
@@ -518,6 +559,8 @@ try{
    Jika dikosongkan, aplikasi tetap jalan seperti biasa memakai data lokal HP ini saja. */
 const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwkK44P8Alh3Q6VQC4_UsREWWmqsFTHoxc4bC6UjWUqtS2squXoCoxQlF8_jpxKWJ8r/exec';
 /* Kunci ini HARUS sama persis dengan API_SECRET_KEY di Code.gs (Apps Script). */
+let lastServerLoad = 0;
+let uploadBusy = false;
 const API_SECRET_KEY = '12cc24460413dcf085c944540610c472df8d3c4441fca84d';
 
 function setMeta(updatedAt, source){
@@ -528,6 +571,7 @@ function setMeta(updatedAt, source){
 
 async function loadFromServer(silent){
   if(!SHEET_API_URL) return;
+  lastServerLoad = Date.now();
   const statusEl = document.getElementById('uploadStatus');
   if(!silent && statusEl){
     statusEl.textContent = 'Mengambil data terbaru dari server...';
@@ -1051,6 +1095,7 @@ uploadBtn.addEventListener('click', async () => {
 csvFileInput.addEventListener('change', () => {
   const file = csvFileInput.files[0];
   if(!file) return;
+  uploadBusy = true;
   uploadStatusEl.textContent = 'Membaca file...';
   uploadStatusEl.className = 'upload-status';
 
@@ -1088,12 +1133,33 @@ csvFileInput.addEventListener('change', () => {
       uploadStatusEl.className = 'upload-status err';
     }
     csvFileInput.value = '';
+    uploadBusy = false;
   };
   reader.onerror = () => {
+    uploadBusy = false;
     uploadStatusEl.textContent = 'Gagal membaca file.';
     uploadStatusEl.className = 'upload-status err';
   };
   reader.readAsText(file, 'utf-8');
+});
+
+/* ==== Menu Admin (semua aksi ubah data ada di sini, dilindungi password) ==== */
+const adminOverlay = document.getElementById('adminOverlay');
+function openAdmin(){ adminOverlay.classList.add('show'); }
+function closeAdmin(){ adminOverlay.classList.remove('show'); }
+document.getElementById('adminBtn').addEventListener('click', async () => {
+  const ok = await requirePassword();
+  if(ok) openAdmin();
+});
+document.getElementById('adminCloseBtn').addEventListener('click', closeAdmin);
+adminOverlay.addEventListener('click', e => { if(e.target === adminOverlay) closeAdmin(); });
+
+// Perangkat rekan kantor yang aplikasinya dibiarkan terbuka ikut mengambil data terbaru saat dibuka kembali
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState !== 'visible') return;
+  if(uploadBusy || adminOverlay.classList.contains('show')) return;
+  if(Date.now() - lastServerLoad < 60000) return;
+  loadFromServer(true);
 });
 
 const syncBtn = document.getElementById('syncBtn');
@@ -1186,7 +1252,7 @@ function closeCompare(){
 }
 compareBtn.addEventListener('click', async () => {
   const ok = await requirePassword();
-  if(ok) openCompare();
+  if(ok){ closeAdmin(); openCompare(); }
 });
 compareOverlay.addEventListener('click', e => { if(e.target === compareOverlay) closeCompare(); });
 
@@ -1326,6 +1392,7 @@ const exportPdfBtn = document.getElementById('exportPdfBtn');
 const printArea = document.getElementById('printArea');
 
 exportPdfBtn.addEventListener('click', () => {
+  closeAdmin();
   const rows = getFilteredRows();
   const now = new Date();
   const printedAt = now.toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'}) +
