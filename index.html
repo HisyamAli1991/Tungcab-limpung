@@ -582,6 +582,10 @@ async function loadFromServer(silent){
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const records = await res.json();
     if(!Array.isArray(records)) throw new Error('Format data dari server tidak dikenali.');
+    records.forEach(d => {
+      const m = typeof d.kode_ao === 'string' && d.kode_ao.match(/^COLL:(\d+)$/);
+      if(m){ if(getColl(d) === null) d.coll = Number(m[1]); d.kode_ao = ''; }
+    });
     const prevColl = new Map(DATA.filter(d => getColl(d) !== null).map(d => [d.no_rekening, d.coll]));
     DATA = records.map(d => (getColl(d) === null && prevColl.has(d.no_rekening)) ? Object.assign({}, d, {coll: prevColl.get(d.no_rekening)}) : d);
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); }catch(e){}
@@ -612,7 +616,7 @@ async function saveToServer(records){
   try{
     await fetch(SHEET_API_URL, {
       method: 'POST',
-      body: JSON.stringify({records, key: API_SECRET_KEY})
+      body: JSON.stringify({records: records.map(d => getColl(d) !== null ? Object.assign({}, d, {kode_ao: 'COLL:' + getColl(d)}) : d), key: API_SECRET_KEY})
     });
     if(statusEl) statusEl.textContent += ' · tersimpan ke server';
   }catch(err){
