@@ -466,7 +466,92 @@
     #printArea td.num{text-align:right; white-space:nowrap;}
     #printArea tr.paid td{background:#f0f7f1;}
   }
+
+  /* Catatan Janji Bayar */
+  .janji-open-btn{
+    flex:0 0 auto; position:relative;
+    font-size:0.78rem; font-weight:700;
+    padding:10px 12px; border-radius:999px;
+    border:1px solid rgba(243,239,228,0.35);
+    background:rgba(243,239,228,0.12);
+    color:#f3efe4; cursor:pointer; white-space:nowrap;
+  }
+  .janji-open-btn:active{background:rgba(243,239,228,0.25);}
+  .janji-badge{
+    position:absolute; top:-6px; right:-4px;
+    min-width:18px; height:18px; padding:0 5px;
+    border-radius:999px; background:#d4552f; color:#fff;
+    font-size:0.68rem; font-weight:700; line-height:18px; text-align:center;
+  }
+  .jn-body{padding:14px 16px 0; display:flex; flex-direction:column; gap:10px;}
+  .jn-add-btn{
+    width:100%; padding:11px; border-radius:999px; border:none;
+    background:var(--brand); color:#fff; font-weight:700; font-size:0.88rem; cursor:pointer;
+  }
+  .jn-form{
+    background:var(--paper-raised); border:1px solid var(--line);
+    border-radius:var(--radius); padding:12px; display:flex; flex-direction:column; gap:8px;
+  }
+  .jn-form h3{margin:0; font-size:0.9rem;}
+  .jn-field label{display:block; font-size:0.68rem; color:var(--ink-soft); margin-bottom:3px; text-transform:uppercase; letter-spacing:0.04em;}
+  .jn-field input, .jn-field select{
+    width:100%; padding:10px 11px; border-radius:8px; border:1px solid var(--line);
+    background:#fff; color:var(--ink); font:inherit; font-size:1rem;
+  }
+  .jn-field input:focus, .jn-field select:focus{outline:2px solid var(--brand); outline-offset:-1px;}
+  .jn-hint{font-size:0.72rem; color:var(--ink-soft);}
+  .jn-err{font-size:0.78rem; color:#c24a30; min-height:1em;}
+  .jn-actions{display:flex; gap:8px;}
+  .jn-actions button{
+    flex:1; padding:10px; border-radius:999px; font-weight:700; font-size:0.85rem; cursor:pointer;
+    border:1px solid var(--line); background:var(--paper-raised); color:var(--ink);
+  }
+  .jn-actions button.primary{background:var(--brand); border-color:var(--brand); color:#fff;}
+  .jn-ao-row select{
+    width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--line);
+    background:var(--paper-raised); color:var(--ink); font-size:0.82rem; font-family:inherit;
+  }
+  .jn-chips{display:flex; gap:6px; overflow-x:auto; padding-bottom:2px;}
+  .jn-group{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin:8px 2px 0; padding-bottom:4px; border-bottom:2px solid var(--brand);
+  }
+  .jn-group span{font-weight:700; font-size:0.85rem; color:var(--brand); text-transform:uppercase; letter-spacing:0.03em;}
+  .jn-group em{font-style:normal; font-size:0.72rem; color:var(--ink-soft);}
+  .jn-item{
+    background:var(--paper-raised); border:1px solid var(--line);
+    border-left:4px solid var(--unpaid-line); border-radius:var(--radius);
+    padding:10px 12px; margin-top:8px;
+  }
+  .jn-item.st-terlambat{border-left-color:#c24a30;}
+  .jn-item.st-hariini{border-left-color:var(--amber);}
+  .jn-item.st-mendatang{border-left-color:var(--brand);}
+  .jn-item.st-selesai{border-left-color:var(--paid-line); background:var(--paid-bg);}
+  .jn-top{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
+  .jn-top b{font-size:0.95rem; word-break:break-word;}
+  .jn-tag{font-size:0.66rem; font-weight:700; padding:3px 8px; border-radius:999px; white-space:nowrap;}
+  .st-terlambat .jn-tag{background:#fbe6e0; color:#a63a22;}
+  .st-hariini .jn-tag{background:#f6ecd2; color:#8a6317;}
+  .st-mendatang .jn-tag{background:var(--brand-soft); color:var(--brand);}
+  .st-selesai .jn-tag{background:#d3ead9; color:var(--paid-text);}
+  .jn-time{font-size:0.8rem; margin-top:4px;}
+  .jn-meta{font-size:0.74rem; color:var(--ink-soft); margin-top:2px; word-break:break-word;}
+  .jn-btns{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+  .jn-btns button, .jn-btns a{
+    font:inherit; font-size:0.75rem; font-weight:700; text-decoration:none;
+    padding:7px 11px; border-radius:999px; cursor:pointer;
+    border:1px solid var(--line); background:var(--paper-raised); color:var(--ink);
+  }
+  .jn-btns a.jn-wa{background:#25a244; border-color:#25a244; color:#fff;}
+  .jn-btns button.jn-nowa{border-style:dashed; color:var(--ink-soft); font-weight:600;}
+  .jn-btns button.jn-del{color:#b5482a;}
+  .jn-empty{text-align:center; color:var(--ink-soft); padding:26px 12px; font-size:0.85rem;}
+  .jn-foot{font-size:0.7rem; color:var(--ink-soft); padding:4px 2px 0;}
+  .jn-sync{display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:0.72rem; color:var(--ink-soft);}
+  .jn-sync .ok{color:var(--paid-text);} .jn-sync .err{color:#c24a30;}
+  .jn-sync button{font:inherit; font-size:0.72rem; font-weight:700; padding:6px 11px; border-radius:999px; border:1px solid var(--line); background:var(--paper-raised); color:var(--brand); cursor:pointer; white-space:nowrap;}
 </style>
+
 
   <meta name="theme-color" content="#0f4d43">
   <meta name="mobile-web-app-capable" content="yes">
@@ -489,6 +574,7 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a8578" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input id="search" type="text" placeholder="Cari nasabah..." autocomplete="off">
     </div>
+    <button id="janjiBtn" class="janji-open-btn" type="button">📝 Janji<span id="janjiBadge" class="janji-badge" style="display:none"></span></button>
     <button id="adminBtn" class="admin-open-btn" type="button">🔒 Admin</button>
   </div>
 </header>
@@ -507,11 +593,16 @@
       <button id="compareBtn" class="admin-item" type="button"><span class="ai-ic">⇄</span><span><b>Bandingkan 2 file</b><small>Data lama vs data baru, filter per Coll</small></span></button>
       <button id="exportPdfBtn" class="admin-item" type="button"><span class="ai-ic">🖨</span><span><b>Export PDF</b><small>Sesuai filter yang sedang tampil di daftar</small></span></button>
       <button id="syncBtn" class="admin-item" type="button"><span class="ai-ic">⟳</span><span><b>Sinkronkan dari server</b><small>Ambil data terbaru sekarang</small></span></button>
+      <button id="pushBtn" class="admin-item" type="button"><span class="ai-ic">⭱</span><span><b>Kirim data HP ini ke server</b><small>Isi server dengan data yang sedang tampil di perangkat ini</small></span></button>
       <button id="resetBtn" class="admin-item danger" type="button"><span class="ai-ic">↺</span><span><b>Reset ke data bawaan</b><small>Hanya di perangkat ini</small></span></button>
       <div id="uploadStatus" class="upload-status"></div>
       <div id="adminInfo" class="admin-hint" style="font-size:0.7rem"></div>
     </div>
   </div>
+</div>
+
+<div class="overlay" id="janjiOverlay">
+  <div class="sheet" id="janjiSheet"></div>
 </div>
 
 <div class="overlay" id="compareOverlay">
@@ -558,10 +649,10 @@ try{
    1. Buat Google Sheet + deploy Apps Script (lihat file Code.gs).
    2. Tempel URL Web App hasil deploy di bawah ini, di antara tanda kutip.
    Jika dikosongkan, aplikasi tetap jalan seperti biasa memakai data lokal HP ini saja. */
-const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwkK44P8Alh3Q6VQC4_UsREWWmqsFTHoxc4bC6UjWUqtS2squXoCoxQlF8_jpxKWJ8r/exec';
+const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzUTxsPIJR3Dp-GBQkQ1S2Afl7X3arqSAlUe_AZ3m7KDTnGNTmPgUsgABNa5vobH9mO/exec';
 /* Kunci ini HARUS sama persis dengan API_SECRET_KEY di Code.gs (Apps Script). */
 let lastServerLoad = 0;
-const APP_VERSION = 'v4 · 24 Sep 2026 · Coll via server';
+const APP_VERSION = 'v6.1 · 1 Okt 2026 · Janji tersinkron + kirim data ke server';
 let lastServerInfo = null;
 let uploadBusy = false;
 const API_SECRET_KEY = '12cc24460413dcf085c944540610c472df8d3c4441fca84d';
@@ -585,6 +676,7 @@ async function loadFromServer(silent){
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const records = await res.json();
     if(!Array.isArray(records)) throw new Error('Format data dari server tidak dikenali.');
+    if(records.length === 0) throw new Error('Server masih kosong, data di perangkat ini dipertahankan.');
     records.forEach(d => {
       const m = typeof d.kode_ao === 'string' && d.kode_ao.match(/^COLL:(\d+)$/);
       if(m){ if(getColl(d) === null) d.coll = Number(m[1]); d.kode_ao = ''; }
@@ -905,9 +997,17 @@ function openDetail(d){
         <div class="field"><span class="lbl">Kantor cabang</span><span class="val">${d.cabang || '-'}</span></div>
       </div>
     </div>
+
+    <div class="section">
+      <button class="compare-run-btn" id="detailJanjiBtn" type="button">📝 Catat janji bayar nasabah ini</button>
+    </div>
   `;
   overlay.classList.add('show');
   document.getElementById('closeBtn').addEventListener('click', closeDetail);
+  document.getElementById('detailJanjiBtn').addEventListener('click', () => {
+    closeDetail();
+    openJanji({nama: d.nama, ao: (d.ao || '').trim(), rek: d.no_rekening, nominal: d.angsuran_bulanan});
+  });
 }
 
 function closeDetail(){
@@ -1199,6 +1299,16 @@ document.addEventListener('visibilitychange', () => {
   if(uploadBusy || adminOverlay.classList.contains('show')) return;
   if(Date.now() - lastServerLoad < 60000) return;
   loadFromServer(true);
+});
+
+document.getElementById('pushBtn').addEventListener('click', async () => {
+  const st = document.getElementById('uploadStatus');
+  if(!SHEET_API_URL){ st.textContent = 'URL server belum diisi.'; st.className = 'upload-status err'; return; }
+  if(!confirm('Kirim ' + DATA.length + ' rekening di perangkat ini ke server? Data nasabah di server akan DIGANTI dengan data ini.')) return;
+  st.textContent = 'Mengirim ' + DATA.length + ' rekening ke server...';
+  st.className = 'upload-status';
+  await saveToServer(DATA);
+  verifyServerColl(DATA);
 });
 
 const syncBtn = document.getElementById('syncBtn');
@@ -1584,6 +1694,449 @@ async function exportCompareAsImage(){
     btn.disabled = false;
   }
 }
+
+/* ==== Catatan Janji Bayar (disortir per AO) ==== */
+const JANJI_KEY = 'kopena_janji_v1';
+let JANJI = [];
+try{
+  JANJI = JSON.parse(localStorage.getItem(JANJI_KEY) || '[]');
+  if(!Array.isArray(JANJI)) JANJI = [];
+}catch(e){ JANJI = []; }
+const JANJI_TOMB_KEY = 'kopena_janji_tomb_v1';
+let JANJI_TOMB = [];
+try{
+  JANJI_TOMB = JSON.parse(localStorage.getItem(JANJI_TOMB_KEY) || '[]');
+  if(!Array.isArray(JANJI_TOMB)) JANJI_TOMB = [];
+}catch(e){ JANJI_TOMB = []; }
+JANJI.forEach(j => { if(!j.updatedAt) j.updatedAt = j.dibuat || Date.now(); });
+
+let janjiFilterAO = 'Semua';
+let janjiFilterStatus = 'aktif';
+let janjiEditId = null;
+let janjiFormOpen = false;
+let janjiDraft = null;
+const janjiOverlay = document.getElementById('janjiOverlay');
+const janjiSheet = document.getElementById('janjiSheet');
+
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function pad2(n){ return String(n).padStart(2, '0'); }
+function toLocalInput(dt){
+  return dt.getFullYear() + '-' + pad2(dt.getMonth() + 1) + '-' + pad2(dt.getDate()) + 'T' + pad2(dt.getHours()) + ':' + pad2(dt.getMinutes());
+}
+function defaultJanjiTime(){
+  const t = new Date();
+  t.setDate(t.getDate() + 1);
+  t.setHours(9, 0, 0, 0);
+  return toLocalInput(t);
+}
+function startOfDay(dt){ return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime(); }
+
+function normWA(raw){
+  let n = String(raw || '').replace(/[^\d+]/g, '');
+  if(n.startsWith('+')) n = n.slice(1);
+  else if(n.startsWith('0')) n = '62' + n.slice(1);
+  else if(n.startsWith('8')) n = '62' + n;
+  n = n.replace(/\D/g, '');
+  return n.length >= 9 ? n : '';
+}
+
+function fmtJanjiWaktu(w){
+  const t = new Date(w);
+  if(isNaN(t)) return '-';
+  const tgl = t.toLocaleDateString('id-ID', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
+  return tgl + ' · ' + pad2(t.getHours()) + '.' + pad2(t.getMinutes());
+}
+
+function janjiState(j){
+  if(j.selesai) return 'selesai';
+  const t = new Date(j.waktu);
+  const now = new Date();
+  if(t < now) return 'terlambat';
+  return t.toDateString() === now.toDateString() ? 'hariini' : 'mendatang';
+}
+function janjiTagLabel(j){
+  const st = janjiState(j);
+  if(st === 'selesai') return '✓ Selesai';
+  if(st === 'terlambat') return 'Terlambat';
+  if(st === 'hariini') return 'Hari ini';
+  const diff = Math.round((startOfDay(new Date(j.waktu)) - startOfDay(new Date())) / 86400000);
+  return diff === 1 ? 'Besok' : 'Mendatang';
+}
+
+function janjiWaLink(j){
+  const num = normWA(j.wa);
+  if(!num) return '';
+  const msg = "Assalamu'alaikum Bapak/Ibu " + j.nama + ", kami dari KOPENA Limpung mengingatkan janji pembayaran angsuran" +
+    (j.nominal ? ' sebesar ' + fmtRupiah(j.nominal) : '') + ' pada ' + fmtJanjiWaktu(j.waktu) +
+    ' WIB. Mohon konfirmasinya. Terima kasih.';
+  return 'https://wa.me/' + num + '?text=' + encodeURIComponent(msg);
+}
+
+function persistJanji(){
+  try{
+    localStorage.setItem(JANJI_KEY, JSON.stringify(JANJI));
+    localStorage.setItem(JANJI_TOMB_KEY, JSON.stringify(JANJI_TOMB));
+  }catch(e){ alert('Gagal menyimpan catatan di perangkat ini (penyimpanan penuh atau diblokir).'); }
+}
+function saveJanji(){
+  persistJanji();
+  updateJanjiBadge();
+  scheduleJanjiSync();
+}
+
+function updateJanjiBadge(){
+  const el = document.getElementById('janjiBadge');
+  if(!el) return;
+  const n = JANJI.filter(j => { const s = janjiState(j); return s === 'terlambat' || s === 'hariini'; }).length;
+  el.textContent = n;
+  el.style.display = n > 0 ? 'block' : 'none';
+}
+
+function janjiAOList(){
+  const s = new Set(DATA.map(d => (d.ao || '').trim()).filter(a => a && a !== 'TANPA NAMA'));
+  JANJI.forEach(j => { if(j.ao) s.add(j.ao); });
+  return [...s].sort((a, b) => a.localeCompare(b, 'id'));
+}
+
+function janjiNamaOptions(ao){
+  const names = new Set();
+  DATA.forEach(d => {
+    if(!ao || (d.ao || '').trim() === ao) names.add(d.nama);
+  });
+  return [...names].sort((a, b) => a.localeCompare(b, 'id')).map(n => `<option value="${esc(n)}"></option>`).join('');
+}
+
+function openJanji(prefill){
+  syncJanji();
+  if(prefill){
+    janjiDraft = prefill;
+    janjiEditId = null;
+    janjiFormOpen = true;
+  }
+  renderJanjiShell();
+  janjiOverlay.classList.add('show');
+  if(prefill) janjiSheet.scrollTop = 0;
+}
+function closeJanji(){ janjiOverlay.classList.remove('show'); }
+
+function renderJanjiShell(){
+  janjiSheet.innerHTML = `
+    <div class="sheet-head">
+      <button class="close" data-act="close" type="button">✕</button>
+      <h2>Catatan Janji Bayar</h2>
+      <div class="sub">Dicatat per AO · sama di semua perangkat</div>
+    </div>
+    <div class="jn-body">
+      <div class="jn-sync"><span id="jnSyncStatus"></span><button type="button" data-act="sync">⟳ Sinkron</button></div>
+      <div id="jnFormBox"></div>
+      <div id="jnFilters"></div>
+      <div id="jnList"></div>
+      <div class="jn-foot">Ubah &amp; hapus janji memerlukan password admin.</div>
+    </div>`;
+  renderJanjiForm();
+  renderJanjiFilters();
+  renderJanjiList();
+  showJanjiSyncStatus();
+}
+
+function renderJanjiForm(){
+  const box = document.getElementById('jnFormBox');
+  if(!box) return;
+  if(!janjiFormOpen){
+    box.innerHTML = '<button class="jn-add-btn" data-act="add" type="button">＋ Catat janji baru</button>';
+    return;
+  }
+  const dr = janjiDraft || {};
+  const aos = janjiAOList();
+  const aoVal = dr.ao || (janjiFilterAO !== 'Semua' ? janjiFilterAO : '');
+  box.innerHTML = `
+    <div class="jn-form">
+      <h3>${janjiEditId ? 'Ubah janji' : 'Janji baru'}</h3>
+      <div class="jn-field"><label for="jfAO">Nama AO</label>
+        <select id="jfAO"><option value="">— pilih AO —</option>${aos.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('')}</select></div>
+      <div class="jn-field"><label for="jfNama">Nama nasabah</label>
+        <input id="jfNama" type="text" list="jfNamaList" autocomplete="off" placeholder="Ketik atau pilih dari daftar">
+        <datalist id="jfNamaList">${janjiNamaOptions(aoVal)}</datalist></div>
+      <div class="jn-field"><label for="jfWA">Nomor WA</label>
+        <input id="jfWA" type="tel" inputmode="tel" placeholder="08xxxxxxxxxx"></div>
+      <div class="jn-field"><label for="jfWaktu">Waktu janji bayar</label>
+        <input id="jfWaktu" type="datetime-local"></div>
+      <div class="jn-field"><label for="jfNominal">Nominal janji (opsional)</label>
+        <input id="jfNominal" type="number" inputmode="numeric" placeholder="Rp"></div>
+      <div class="jn-field"><label for="jfCatatan">Catatan (opsional)</label>
+        <input id="jfCatatan" type="text" placeholder="mis. nunggu panen, transfer via BRI"></div>
+      <div id="jfErr" class="jn-err"></div>
+      <div class="jn-actions">
+        <button type="button" data-act="cancel">Batal</button>
+        <button type="button" class="primary" data-act="save">Simpan</button>
+      </div>
+    </div>`;
+  document.getElementById('jfAO').value = aoVal;
+  document.getElementById('jfNama').value = dr.nama || '';
+  document.getElementById('jfWA').value = dr.wa || '';
+  document.getElementById('jfWaktu').value = dr.waktu || defaultJanjiTime();
+  document.getElementById('jfNominal').value = dr.nominal || '';
+  document.getElementById('jfCatatan').value = dr.catatan || '';
+  // nomor WA terakhir yang pernah dicatat untuk nasabah ini (kalau belum diisi)
+  if(dr.nama && !dr.wa) fillWAFromHistory(dr.nama);
+}
+
+function fillWAFromHistory(nama){
+  const key = String(nama || '').trim().toLowerCase();
+  if(!key) return;
+  const prev = JANJI.filter(j => j.wa && j.nama.trim().toLowerCase() === key).sort((a, b) => (b.dibuat || 0) - (a.dibuat || 0))[0];
+  const waEl = document.getElementById('jfWA');
+  if(prev && waEl && !waEl.value) waEl.value = prev.wa;
+}
+
+function renderJanjiFilters(){
+  const box = document.getElementById('jnFilters');
+  if(!box) return;
+  const aos = janjiAOList();
+  if(janjiFilterAO !== 'Semua' && !aos.includes(janjiFilterAO)) janjiFilterAO = 'Semua';
+  const base = JANJI.filter(j => janjiFilterAO === 'Semua' || j.ao === janjiFilterAO);
+  const c = {aktif:0, terlambat:0, hariini:0, selesai:0, semua:base.length};
+  base.forEach(j => {
+    const s = janjiState(j);
+    if(s === 'selesai') c.selesai++;
+    else { c.aktif++; if(s === 'terlambat') c.terlambat++; if(s === 'hariini') c.hariini++; }
+  });
+  const chip = (k, label) => `<button type="button" class="chip ${janjiFilterStatus === k ? 'active' : ''}" data-act="chip" data-val="${k}">${label} (${c[k]})</button>`;
+  box.innerHTML = `
+    <div class="jn-ao-row"><select id="jnAOFilter">
+      <option value="Semua">Semua AO (${JANJI.length})</option>
+      ${aos.map(a => `<option value="${esc(a)}" ${a === janjiFilterAO ? 'selected' : ''}>${esc(a)} (${JANJI.filter(j => j.ao === a).length})</option>`).join('')}
+    </select></div>
+    <div class="jn-chips" style="margin-top:8px">
+      ${chip('aktif', 'Aktif')}${chip('terlambat', 'Terlambat')}${chip('hariini', 'Hari ini')}${chip('selesai', 'Selesai')}${chip('semua', 'Semua')}
+    </div>`;
+}
+
+function renderJanjiList(){
+  const box = document.getElementById('jnList');
+  if(!box) return;
+  let rows = JANJI.filter(j => janjiFilterAO === 'Semua' || j.ao === janjiFilterAO);
+  rows = rows.filter(j => {
+    const s = janjiState(j);
+    if(janjiFilterStatus === 'aktif') return s !== 'selesai';
+    if(janjiFilterStatus === 'semua') return true;
+    return s === janjiFilterStatus;
+  });
+  if(!rows.length){
+    box.innerHTML = '<div class="jn-empty">' + (JANJI.length ? 'Tidak ada janji untuk filter ini.' : 'Belum ada catatan janji. Tap “＋ Catat janji baru” untuk mulai.') + '</div>';
+    return;
+  }
+  const groups = new Map();
+  rows.forEach(j => {
+    const k = j.ao || '(Tanpa AO)';
+    if(!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(j);
+  });
+  const desc = janjiFilterStatus === 'selesai';
+  const keys = [...groups.keys()].sort((a, b) => a.localeCompare(b, 'id'));
+  box.innerHTML = keys.map(k => {
+    const list = groups.get(k).sort((a, b) => desc ? new Date(b.waktu) - new Date(a.waktu) : new Date(a.waktu) - new Date(b.waktu));
+    return `<div class="jn-group"><span>${esc(k)}</span><em>${list.length} janji</em></div>` + list.map(janjiItemHtml).join('');
+  }).join('');
+}
+
+function janjiItemHtml(j){
+  const st = janjiState(j);
+  const link = janjiWaLink(j);
+  const meta = [];
+  if(j.nominal) meta.push('Janji ' + fmtRupiah(j.nominal));
+  if(j.rek) meta.push('Rek ' + esc(j.rek));
+  const waBtn = link
+    ? `<a class="jn-wa" href="${link}" target="_blank" rel="noopener">💬 ${esc(j.wa)}</a>`
+    : `<button type="button" class="jn-nowa" data-act="edit" data-id="${esc(j.id)}">🔒 ＋ Nomor WA</button>`;
+  return `
+    <div class="jn-item st-${st}">
+      <div class="jn-top"><b>${esc(j.nama)}</b><span class="jn-tag">${janjiTagLabel(j)}</span></div>
+      <div class="jn-time nums">📅 ${esc(fmtJanjiWaktu(j.waktu))}</div>
+      ${meta.length ? `<div class="jn-meta nums">${meta.join(' · ')}</div>` : ''}
+      ${j.catatan ? `<div class="jn-meta">${esc(j.catatan)}</div>` : ''}
+      <div class="jn-btns">
+        ${waBtn}
+        <button type="button" data-act="done" data-id="${esc(j.id)}">${j.selesai ? '↺ Buka lagi' : '✓ Selesai'}</button>
+        <button type="button" data-act="edit" data-id="${esc(j.id)}">🔒 Ubah</button>
+        <button type="button" class="jn-del" data-act="del" data-id="${esc(j.id)}">🔒 Hapus</button>
+      </div>
+    </div>`;
+}
+
+function saveJanjiForm(){
+  const val = id => document.getElementById(id).value.trim();
+  const err = document.getElementById('jfErr');
+  const ao = val('jfAO'), nama = val('jfNama'), waRaw = val('jfWA'), waktu = val('jfWaktu');
+  const nominal = Number(val('jfNominal')) || 0;
+  const catatan = val('jfCatatan');
+  if(!ao){ err.textContent = 'Pilih nama AO dulu.'; return; }
+  if(!nama){ err.textContent = 'Nama nasabah wajib diisi.'; return; }
+  if(!waktu || isNaN(new Date(waktu))){ err.textContent = 'Isi waktu janji bayar.'; return; }
+  if(waRaw && !normWA(waRaw)){ err.textContent = 'Nomor WA tidak valid. Contoh: 081234567890'; return; }
+  const rec = DATA.find(d => d.nama.trim().toLowerCase() === nama.toLowerCase() && (d.ao || '').trim() === ao)
+           || DATA.find(d => d.nama.trim().toLowerCase() === nama.toLowerCase());
+  const rek = (janjiDraft && janjiDraft.rek && janjiDraft.nama && janjiDraft.nama.toLowerCase() === nama.toLowerCase()) ? janjiDraft.rek : (rec ? rec.no_rekening : '');
+  if(janjiEditId){
+    const j = JANJI.find(x => x.id === janjiEditId);
+    if(j) Object.assign(j, {ao, nama, wa:waRaw, waktu, nominal, catatan, rek, updatedAt:Date.now()});
+  }else{
+    JANJI.push({id: 'j' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ao, nama, wa:waRaw, waktu, nominal, catatan, rek, selesai:false, dibuat:Date.now(), updatedAt:Date.now()});
+  }
+  saveJanji();
+  janjiFormOpen = false; janjiEditId = null; janjiDraft = null;
+  if(janjiFilterAO !== 'Semua') janjiFilterAO = ao;
+  if(janjiFilterStatus === 'selesai') janjiFilterStatus = 'aktif';
+  renderJanjiForm(); renderJanjiFilters(); renderJanjiList();
+}
+
+janjiSheet.addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]');
+  if(!b) return;
+  const act = b.dataset.act, id = b.dataset.id;
+  if(act === 'close') return closeJanji();
+  if(act === 'add'){ janjiDraft = null; janjiEditId = null; janjiFormOpen = true; renderJanjiForm(); return; }
+  if(act === 'cancel'){ janjiFormOpen = false; janjiEditId = null; janjiDraft = null; renderJanjiForm(); return; }
+  if(act === 'save') return saveJanjiForm();
+  if(act === 'chip'){ janjiFilterStatus = b.dataset.val; renderJanjiFilters(); renderJanjiList(); return; }
+  if(act === 'sync') return syncJanji();
+  const j = JANJI.find(x => x.id === id);
+  if(!j) return;
+  if(act === 'done'){ j.selesai = !j.selesai; j.updatedAt = Date.now(); saveJanji(); renderJanjiFilters(); renderJanjiList(); return; }
+  if(act === 'edit'){
+    if(!(await requirePassword())) return;
+    janjiEditId = j.id; janjiDraft = Object.assign({}, j); janjiFormOpen = true;
+    renderJanjiForm(); janjiSheet.scrollTop = 0; return;
+  }
+  if(act === 'del'){
+    if(!(await requirePassword())) return;
+    if(confirm('Hapus janji ' + j.nama + '?')){
+      JANJI = JANJI.filter(x => x.id !== id);
+      JANJI_TOMB = JANJI_TOMB.filter(x => x.id !== id).concat([{id, deleted:true, updatedAt:Date.now()}]);
+      saveJanji();
+      renderJanjiFilters(); renderJanjiList();
+    }
+  }
+});
+janjiSheet.addEventListener('change', e => {
+  if(e.target.id === 'jnAOFilter'){ janjiFilterAO = e.target.value; renderJanjiFilters(); renderJanjiList(); }
+  if(e.target.id === 'jfAO'){ document.getElementById('jfNamaList').innerHTML = janjiNamaOptions(e.target.value); }
+});
+janjiSheet.addEventListener('input', e => {
+  if(e.target.id !== 'jfNama') return;
+  const q = e.target.value.trim().toLowerCase();
+  const aoEl = document.getElementById('jfAO');
+  const rec = DATA.find(d => d.nama.trim().toLowerCase() === q && (!aoEl.value || (d.ao || '').trim() === aoEl.value));
+  if(rec){
+    if(!aoEl.value && rec.ao && rec.ao.trim() !== 'TANPA NAMA') aoEl.value = rec.ao.trim();
+    const nomEl = document.getElementById('jfNominal');
+    if(!nomEl.value && rec.angsuran_bulanan) nomEl.value = rec.angsuran_bulanan;
+  }
+  fillWAFromHistory(e.target.value);
+});
+janjiOverlay.addEventListener('click', e => { if(e.target === janjiOverlay) closeJanji(); });
+
+/* ---- Sinkron catatan janji lewat Google Apps Script (butuh tambahan di Code.gs) ---- */
+let janjiSyncBusy = false, janjiSyncAgain = false, janjiServerReady = false;
+let janjiSyncTimer = null, janjiLastAttempt = 0, janjiSyncMsg = null;
+
+function setJanjiSyncStatus(text, cls){
+  janjiSyncMsg = {text, cls: cls || ''};
+  showJanjiSyncStatus();
+}
+function showJanjiSyncStatus(){
+  const el = document.getElementById('jnSyncStatus');
+  if(!el) return;
+  const m = janjiSyncMsg || {text: SHEET_API_URL ? 'Belum disinkronkan' : 'Sinkron tidak aktif (URL server kosong)', cls: ''};
+  el.textContent = m.text;
+  el.className = m.cls;
+}
+
+function mergeJanji(list){
+  const local = new Map(JANJI.map(j => [j.id, j]));
+  const tomb = new Map(JANJI_TOMB.map(t => [t.id, t]));
+  list.forEach(r => {
+    if(!r || !r.id) return;
+    const l = local.get(r.id), t = tomb.get(r.id);
+    const known = l ? (l.updatedAt || 0) : (t ? (t.updatedAt || 0) : -1);
+    if((r.updatedAt || 0) <= known) return;
+    if(r.deleted){
+      local.delete(r.id);
+      tomb.set(r.id, {id: r.id, deleted: true, updatedAt: r.updatedAt});
+    }else{
+      local.set(r.id, r);
+      tomb.delete(r.id);
+    }
+  });
+  JANJI = [...local.values()];
+  JANJI_TOMB = [...tomb.values()];
+}
+
+function scheduleJanjiSync(){
+  if(!SHEET_API_URL) return;
+  clearTimeout(janjiSyncTimer);
+  janjiSyncTimer = setTimeout(syncJanji, 800);
+}
+
+async function syncJanji(){
+  if(!SHEET_API_URL){ showJanjiSyncStatus(); return; }
+  if(janjiSyncBusy){ janjiSyncAgain = true; return; }
+  janjiSyncBusy = true;
+  janjiLastAttempt = Date.now();
+  setJanjiSyncStatus('Menyinkronkan…', '');
+  try{
+    let out;
+    if(!janjiServerReady){
+      // Cek aman dulu: server lama (belum diperbarui) membalas dengan daftar nasabah, bukan {janji:[...]}.
+      // Dalam kasus itu kita TIDAK mengirim apa pun supaya data nasabah di server tidak tertimpa.
+      const probe = await fetch(SHEET_API_URL + '?action=janji&key=' + encodeURIComponent(API_SECRET_KEY), {cache:'no-store'});
+      if(!probe.ok) throw new Error('HTTP ' + probe.status);
+      out = await probe.json();
+      if(!out || !Array.isArray(out.janji)){
+        throw new Error(out && out.error ? out.error : 'Code.gs belum diperbarui untuk fitur janji');
+      }
+      janjiServerReady = true;
+    }
+    const res = await fetch(SHEET_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({action:'janji_sync', key:API_SECRET_KEY, janji: JANJI.concat(JANJI_TOMB)})
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    out = await res.json();
+    if(!out || !Array.isArray(out.janji)){
+      janjiServerReady = false;
+      throw new Error(out && out.error ? out.error : 'Balasan server tidak dikenali');
+    }
+    mergeJanji(out.janji);
+    persistJanji();
+    updateJanjiBadge();
+    if(janjiOverlay.classList.contains('show') && document.getElementById('jnList')){
+      renderJanjiFilters(); renderJanjiList();
+    }
+    const n = new Date();
+    setJanjiSyncStatus('✓ Tersinkron ' + pad2(n.getHours()) + '.' + pad2(n.getMinutes()), 'ok');
+  }catch(err){
+    setJanjiSyncStatus('Gagal sinkron: ' + err.message + ' · catatan aman di HP ini', 'err');
+  }finally{
+    janjiSyncBusy = false;
+    if(janjiSyncAgain){ janjiSyncAgain = false; scheduleJanjiSync(); }
+  }
+}
+
+document.getElementById('janjiBtn').addEventListener('click', () => openJanji());
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState !== 'visible') return;
+  updateJanjiBadge();
+  if(Date.now() - janjiLastAttempt > 20000) syncJanji();
+});
+setInterval(() => {
+  updateJanjiBadge();
+  if(janjiOverlay.classList.contains('show') && Date.now() - janjiLastAttempt > 45000) syncJanji();
+}, 60000);
+updateJanjiBadge();
+setTimeout(syncJanji, 1500);
 </script>
 
 <script>
